@@ -9,6 +9,11 @@ const actionVariant: Record<string, 'success' | 'danger' | 'warning' | 'primary'
   Resume: 'warning', Retry: 'primary', Reset: 'primary',
 };
 
+const actionLabels: Record<string, string> = {
+  Approve: 'Approve', Reject: 'Reject', Cancel: 'Cancel Job',
+  Resume: 'Resume', Retry: 'Retry', Reset: 'Reset Step',
+};
+
 export function RunsPage() {
   const { data, isLoading } = useActiveRuns();
   const actionMut = useRequestAction();
@@ -89,7 +94,7 @@ export function RunsPage() {
                       }`}
                       onClick={() => handleAction(action, run)}
                     >
-                      {action}
+                      {actionLabels[action] || action}
                     </button>
                   ))}
                 </div>
@@ -136,7 +141,7 @@ export function RunsPage() {
                 }`}
                 onClick={() => handleAction(action, selectedRun)}
               >
-                {action}
+                {actionLabels[action] || action}
               </button>
             ))}
           </div>
@@ -146,9 +151,9 @@ export function RunsPage() {
       {/* Confirm dialog */}
       <ConfirmDialog
         open={!!confirm}
-        title={`Confirm: ${confirm?.action}`}
-        message={`${confirm?.action} ${confirm?.run.run_code}? This will be sent to the backend immediately.`}
-        confirmLabel={confirm?.action || 'Confirm'}
+        title={`Confirm: ${actionLabels[confirm?.action || ''] || confirm?.action}`}
+        message={`${actionLabels[confirm?.action || ''] || confirm?.action} for ${confirm?.run.run_code}? This will be sent to the backend immediately.`}
+        confirmLabel={actionLabels[confirm?.action || ''] || confirm?.action || 'Confirm'}
         confirmVariant={actionVariant[confirm?.action || ''] || 'primary'}
         showFeedback={['Approve', 'Reject', 'Resume', 'Retry'].includes(confirm?.action || '')}
         onConfirm={doAction}

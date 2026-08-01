@@ -10,6 +10,14 @@ export function useActiveRuns(refreshInterval = 5000) {
   });
 }
 
+export function useAllRuns(refreshInterval = 10000) {
+  return useQuery({
+    queryKey: ['runs', 'all'],
+    queryFn: api.listAllRuns,
+    refetchInterval: refreshInterval,
+  });
+}
+
 export function useRun(runId: string | null) {
   return useQuery({
     queryKey: ['run', runId],

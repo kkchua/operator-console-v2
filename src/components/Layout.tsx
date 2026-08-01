@@ -4,6 +4,7 @@ import { useTheme } from './ThemeProvider';
 
 const navItems = [
   { to: '/', label: 'Active Runs', icon: '▶', end: true },
+  { to: '/history', label: 'History', icon: '📜' },
   { to: '/submit', label: 'Submit Job', icon: '＋' },
   { to: '/repos', label: 'Repos', icon: '📁' },
   { to: '/workers', label: 'Workers', icon: '⚙' },

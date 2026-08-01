@@ -34,6 +34,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const listRuns = (status?: string) =>
   request<RunListResponse>('GET', `/runs${status ? `?status=${status}` : ''}`);
 
+export const listAllRuns = () =>
+  request<RunListResponse>('GET', '/runs');
+
 export const getRun = (runId: string) =>
   request<RunResponse>('GET', `/runs/${runId}`);
 
