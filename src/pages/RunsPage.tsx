@@ -125,8 +125,8 @@ export function RunsPage() {
               <DetailField label="Worker" value={selectedRun.worker_id || '—'} />
             </DetailSection>
             <DetailSection title="Timing">
-              <DetailField label="Created" value={new Date(selectedRun.created_at).toLocaleString()} />
-              <DetailField label="Updated" value={new Date(selectedRun.updated_at).toLocaleString()} />
+              <DetailField label="Created" value={toLocalTime(selectedRun.created_at)} />
+              <DetailField label="Updated" value={toLocalTime(selectedRun.updated_at)} />
             </DetailSection>
           </div>
           <div className="p-4 border-t border-border flex gap-2 flex-wrap">
@@ -188,4 +188,10 @@ function DetailField({ label, value, children }: { label: string; value?: string
       {children || <span className="font-mono text-text-secondary">{value}</span>}
     </div>
   );
+}
+
+function toLocalTime(iso: string): string {
+  // Backend returns naive UTC datetimes — append 'Z' to parse as UTC
+  const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z');
+  return d.toLocaleString();
 }

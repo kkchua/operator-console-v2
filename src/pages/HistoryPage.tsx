@@ -76,7 +76,8 @@ function RunRow({ run }: { run: RunResponse }) {
 }
 
 function formatTime(iso: string): string {
-  const d = new Date(iso);
+  // Backend returns naive UTC datetimes — append 'Z' to parse as UTC
+  const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z');
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
