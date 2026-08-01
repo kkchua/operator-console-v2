@@ -18,9 +18,12 @@ export function SubmitPage() {
   const availableWorkflows = selectedRepo
     ? selectedRepo.workflows.map(a => {
         const wf = allWorkflows?.find(w => w.workflow_name === a.workflow_name);
-        return { workflow_name: a.workflow_name, display_name: a.display_name, step_count: wf?.step_count ?? 0 };
+        return { workflow_name: a.workflow_name, display_name: a.display_name, step_count: wf?.step_count ?? 0, steps: wf?.steps ?? [] };
       })
-    : (allWorkflows ?? []).map(w => ({ workflow_name: w.workflow_name, display_name: null, step_count: w.step_count }));
+    : (allWorkflows ?? []).map(w => ({ workflow_name: w.workflow_name, display_name: null, step_count: w.step_count, steps: w.steps }));
+
+  // Get steps for the selected workflow
+  const selectedWorkflowSteps = availableWorkflows.find(w => w.workflow_name === workflow)?.steps ?? [];
 
   const doSubmit = () => {
     submitMut.mutate(
@@ -100,8 +103,12 @@ export function SubmitPage() {
                 className="w-full bg-bg-input border border-border rounded-md px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
                 value={startStep}
                 onChange={e => setStartStep(e.target.value)}
+                disabled={!workflow}
               >
                 <option value="">From beginning</option>
+                {selectedWorkflowSteps.map(step => (
+                  <option key={step} value={step}>{step}</option>
+                ))}
               </select>
             </div>
 

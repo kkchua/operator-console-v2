@@ -32,6 +32,7 @@ export interface WorkflowResponse {
   init_step: string | null;
   is_active: boolean;
   step_count: number;
+  steps: string[];
 }
 
 export interface SubmitRunRequest {
