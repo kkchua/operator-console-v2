@@ -14,6 +14,15 @@ const actionLabels: Record<string, string> = {
   Resume: 'Resume', Retry: 'Retry', Reset: 'Reset Step',
 };
 
+const actionMessages: Record<string, string> = {
+  Approve: 'Approve the current step and advance to the next step in the workflow.',
+  Reject: 'Reject the current step. The job will loop back for refinement.',
+  Cancel: 'Stop the job immediately and mark it as FAILED. This cannot be undone.',
+  Resume: 'Force-approve the current step and advance, bypassing the wait condition.',
+  Retry: 'Re-execute the current step from scratch with a fresh attempt.',
+  Reset: 'Reset the current step back to pending status for re-execution.',
+};
+
 export function RunsPage() {
   const { data, isLoading } = useActiveRuns();
   const actionMut = useRequestAction();
@@ -151,10 +160,11 @@ export function RunsPage() {
       {/* Confirm dialog */}
       <ConfirmDialog
         open={!!confirm}
-        title={`Confirm: ${actionLabels[confirm?.action || ''] || confirm?.action}`}
-        message={`${actionLabels[confirm?.action || ''] || confirm?.action} for ${confirm?.run.run_code}? This will be sent to the backend immediately.`}
+        title={`${actionLabels[confirm?.action || ''] || confirm?.action} — ${confirm?.run.run_code || ''}`}
+        message={actionMessages[confirm?.action || ''] || `Send ${confirm?.action} to the backend for ${confirm?.run.run_code}?`}
         confirmLabel={actionLabels[confirm?.action || ''] || confirm?.action || 'Confirm'}
         confirmVariant={actionVariant[confirm?.action || ''] || 'primary'}
+        cancelLabel="Go Back"
         showFeedback={['Approve', 'Reject', 'Resume', 'Retry'].includes(confirm?.action || '')}
         onConfirm={doAction}
         onCancel={() => setConfirm(null)}

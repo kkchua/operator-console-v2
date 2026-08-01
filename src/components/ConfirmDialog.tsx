@@ -6,6 +6,7 @@ interface Props {
   message: string;
   confirmLabel: string;
   confirmVariant?: 'primary' | 'success' | 'danger' | 'warning';
+  cancelLabel?: string;
   showFeedback?: boolean;
   children?: ReactNode;
   onConfirm: (feedback?: string) => void;
@@ -21,7 +22,7 @@ const variantClasses = {
 
 export function ConfirmDialog({
   open, title, message, confirmLabel, confirmVariant = 'primary',
-  showFeedback, children, onConfirm, onCancel,
+  cancelLabel = 'Cancel', showFeedback, children, onConfirm, onCancel,
 }: Props) {
   const [feedback, setFeedback] = useState('');
 
@@ -46,7 +47,7 @@ export function ConfirmDialog({
         )}
         <div className="flex gap-2 justify-end">
           <button className="px-4 py-2 rounded-md text-sm border border-border text-text-muted hover:text-text-primary hover:border-text-muted" onClick={onCancel}>
-            Cancel
+            {cancelLabel}
           </button>
           <button
             className={`px-4 py-2 rounded-md text-sm font-medium ${variantClasses[confirmVariant]}`}
