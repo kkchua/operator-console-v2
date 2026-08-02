@@ -1,27 +1,74 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useActiveRuns, useRequestAction } from '../api/hooks';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { RunResponse } from '../api/types';
 
 const actionVariant: Record<string, 'success' | 'danger' | 'warning' | 'primary'> = {
-  Approve: 'success', Reject: 'danger', Cancel: 'danger',
-  Resume: 'warning', Retry: 'primary', Reset: 'primary',
+  APPROVE: 'success', REJECT: 'danger', CANCEL: 'danger', FORCE_CANCEL: 'danger',
+  RESUME: 'warning', RETRY: 'primary', RESET: 'primary',
 };
 
 const actionLabels: Record<string, string> = {
-  Approve: 'Approve', Reject: 'Reject', Cancel: 'Cancel Job',
-  Resume: 'Resume', Retry: 'Retry', Reset: 'Reset Step',
+  APPROVE: 'Approve', REJECT: 'Reject', CANCEL: 'Cancel Job', FORCE_CANCEL: 'Force Cancel',
+  RESUME: 'Resume', RETRY: 'Retry', RESET: 'Reset Step',
 };
 
 const actionMessages: Record<string, string> = {
-  Approve: 'Approve the current step and advance to the next step in the workflow.',
-  Reject: 'Reject the current step. The job will loop back for refinement.',
-  Cancel: 'Stop the job immediately and mark it as FAILED. This cannot be undone.',
-  Resume: 'Force-approve the current step and advance, bypassing the wait condition.',
-  Retry: 'Re-execute the current step from scratch with a fresh attempt.',
-  Reset: 'Reset the current step back to pending status for re-execution.',
+  APPROVE: 'Approve the current step and advance to the next step in the workflow.',
+  REJECT: 'Reject the current step. The job will loop back for refinement.',
+  CANCEL: 'Stop the job gracefully, letting the current step finish.',
+  FORCE_CANCEL: 'Immediately terminate the job and kill any running child processes.',
+  RESUME: 'Force-approve the current step and advance, bypassing the wait condition.',
+  RETRY: 'Re-execute the current step from scratch with a fresh attempt.',
+  RESET: 'Reset the current step back to pending status for re-execution.',
 };
+
+const AWAITING_STATUSES = ['WAITING_FOR_HUMAN_APPROVAL', 'AWAITING_INTERVENTION', 'AWAITING_MAXRETRIED'];
+
+function ActionDropdown({ run, onAction }: { run: RunResponse; onAction: (action: string, run: RunResponse) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  if (run.valid_actions.length === 0) return <span className="text-xs text-text-muted">—</span>;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        className="px-2.5 py-1 rounded text-xs font-medium bg-white/5 text-text-muted hover:bg-white/10 border border-border"
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+      >
+        Actions ▾
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-40 bg-bg-secondary border border-border rounded-lg shadow-xl z-50 py-1">
+          {run.valid_actions.map(action => (
+            <button
+              key={action}
+              className={`w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-white/10 ${
+                action === 'CANCEL' ? 'text-red-400' :
+                action === 'APPROVE' ? 'text-green-400' :
+                action === 'REJECT' ? 'text-red-400' :
+                'text-text-secondary'
+              }`}
+              onClick={(e) => { e.stopPropagation(); setOpen(false); onAction(action, run); }}
+            >
+              {actionLabels[action] || action}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function RunsPage() {
   const { data, isLoading } = useActiveRuns();
@@ -32,7 +79,7 @@ export function RunsPage() {
   const runs = data?.runs ?? [];
   const counts = {
     running: runs.filter(r => r.run_status === 'RUNNING').length,
-    awaiting: runs.filter(r => r.run_status.startsWith('AWAITING')).length,
+    awaiting: runs.filter(r => AWAITING_STATUSES.includes(r.run_status)).length,
     pending: runs.filter(r => r.run_status === 'PENDING' || r.run_status === 'SUBMITTED').length,
   };
 
@@ -71,7 +118,7 @@ export function RunsPage() {
         </div>
 
         {/* Run list */}
-        <div className="bg-bg-secondary border border-border rounded-xl overflow-hidden">
+        <div className="bg-bg-secondary border border-border rounded-xl">
           <div className="px-5 py-3.5 border-b border-border flex justify-between items-center">
             <h3 className="text-sm font-semibold">Active Runs</h3>
             <span className="text-xs text-text-muted">{runs.length} runs</span>
@@ -91,21 +138,8 @@ export function RunsPage() {
                 <span className="text-sm text-text-secondary">{run.workflow_name}</span>
                 <StatusBadge status={run.run_status} />
                 <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
-                <div className="flex gap-1 justify-end" onClick={e => e.stopPropagation()}>
-                  {run.valid_actions.map(action => (
-                    <button
-                      key={action}
-                      className={`px-2.5 py-1 rounded text-xs font-medium ${
-                        action === 'Cancel' ? 'bg-danger/20 text-red-400 hover:bg-danger/30' :
-                        action === 'Approve' ? 'bg-success/20 text-green-400 hover:bg-success/30' :
-                        action === 'Reject' ? 'bg-danger/20 text-red-400 hover:bg-danger/30' :
-                        'bg-white/5 text-text-muted hover:bg-white/10'
-                      }`}
-                      onClick={() => handleAction(action, run)}
-                    >
-                      {actionLabels[action] || action}
-                    </button>
-                  ))}
+                <div className="flex justify-end" onClick={e => e.stopPropagation()}>
+                  <ActionDropdown run={run} onAction={handleAction} />
                 </div>
               </div>
             ))
@@ -138,21 +172,8 @@ export function RunsPage() {
               <DetailField label="Updated" value={toLocalTime(selectedRun.updated_at)} />
             </DetailSection>
           </div>
-          <div className="p-4 border-t border-border flex gap-2 flex-wrap">
-            {selectedRun.valid_actions.map(action => (
-              <button
-                key={action}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${
-                  action === 'Approve' ? 'bg-success text-white hover:bg-green-600' :
-                  action === 'Reject' || action === 'Cancel' ? 'bg-danger text-white hover:bg-red-600' :
-                  action === 'Resume' ? 'bg-warning text-black hover:bg-amber-600' :
-                  'border border-border text-text-muted hover:text-text-primary'
-                }`}
-                onClick={() => handleAction(action, selectedRun)}
-              >
-                {actionLabels[action] || action}
-              </button>
-            ))}
+          <div className="p-4 border-t border-border">
+            <ActionDropdown run={selectedRun} onAction={handleAction} />
           </div>
         </div>
       )}
@@ -165,7 +186,7 @@ export function RunsPage() {
         confirmLabel={actionLabels[confirm?.action || ''] || confirm?.action || 'Confirm'}
         confirmVariant={actionVariant[confirm?.action || ''] || 'primary'}
         cancelLabel="Go Back"
-        showFeedback={['Approve', 'Reject', 'Resume', 'Retry'].includes(confirm?.action || '')}
+        showFeedback={['APPROVE', 'REJECT', 'RESUME', 'RETRY'].includes(confirm?.action || '')}
         onConfirm={doAction}
         onCancel={() => setConfirm(null)}
       />
@@ -201,7 +222,6 @@ function DetailField({ label, value, children }: { label: string; value?: string
 }
 
 function toLocalTime(iso: string): string {
-  // Backend returns naive UTC datetimes — append 'Z' to parse as UTC
   const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z');
   return d.toLocaleString();
 }
