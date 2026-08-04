@@ -73,7 +73,8 @@ export function WorkersPage() {
           <div className="text-text-muted text-center py-12">No workers registered</div>
         ) : (
           <div className="bg-bg-secondary border border-border rounded-xl">
-            <div className="grid grid-cols-[1.2fr_0.8fr_0.6fr_0.7fr_0.5fr_0.8fr_1fr_140px] gap-3 px-5 py-2.5 border-b border-border text-xs text-text-muted uppercase tracking-wider">
+            {/* Desktop header */}
+            <div className="hidden md:grid grid-cols-[1.2fr_0.8fr_0.6fr_0.7fr_0.5fr_0.8fr_1fr_140px] gap-3 px-5 py-2.5 border-b border-border text-xs text-text-muted uppercase tracking-wider">
               <span>Worker ID</span>
               <span>Host</span>
               <span>Label</span>
@@ -83,40 +84,85 @@ export function WorkersPage() {
               <span>Last Heartbeat</span>
               <span />
             </div>
-            {list.map(w => (
-              <div
-                key={w.worker_id}
-                className="grid grid-cols-[1.2fr_0.8fr_0.6fr_0.7fr_0.5fr_0.8fr_1fr_140px] gap-3 items-center px-5 py-3 border-b border-bg-primary last:border-0"
-              >
-                <span className="text-sm font-medium text-text-primary truncate">{w.worker_id}</span>
-                <span className="text-xs text-text-muted truncate">{w.hostname || '—'}</span>
-                <span className="text-xs text-text-secondary">{w.worker_label}</span>
-                <StatusBadge status={w.status.toUpperCase()} />
-                <span className={`text-xs font-medium ${w.is_enabled ? 'text-emerald-400' : 'text-red-400'}`}>{w.is_enabled ? 'Yes' : 'No'}</span>
-                <span className="text-xs text-text-muted font-mono truncate">{w.current_run_id || '—'}</span>
-                <span className="text-xs text-text-muted">{w.last_heartbeat ? timeAgo(w.last_heartbeat) : '—'}</span>
-                <div className="flex gap-1.5">
-                  <button
-                    className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
-                    onClick={() => openEdit(w)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-amber-400 hover:border-amber-400"
-                    onClick={() => setConfirmStop(w.worker_id)}
-                  >
-                    Stop
-                  </button>
-                  <button
-                    className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
-                    onClick={() => setConfirmDelete(w.worker_id)}
-                  >
-                    Delete
-                  </button>
+
+            {/* Mobile card layout */}
+            <div className="md:hidden divide-y divide-bg-primary">
+              {list.map(w => (
+                <div key={w.worker_id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-text-primary">{w.worker_id}</span>
+                    <StatusBadge status={w.status.toUpperCase()} />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <span className="text-text-muted">{w.hostname || '—'}</span>
+                    <span className="text-text-secondary">{w.worker_label}</span>
+                    <span className={w.is_enabled ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>{w.is_enabled ? 'Enabled' : 'Disabled'}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <span className="text-text-muted font-mono truncate">Run: {w.current_run_id || '—'}</span>
+                    <span className="text-text-muted">Heartbeat: {w.last_heartbeat ? timeAgo(w.last_heartbeat) : '—'}</span>
+                  </div>
+                  <div className="flex gap-1.5 pt-1">
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
+                      onClick={() => openEdit(w)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-amber-400 hover:border-amber-400"
+                      onClick={() => setConfirmStop(w.worker_id)}
+                    >
+                      Stop
+                    </button>
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
+                      onClick={() => setConfirmDelete(w.worker_id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Desktop grid rows */}
+            <div className="hidden md:block">
+              {list.map(w => (
+                <div
+                  key={w.worker_id}
+                  className="grid grid-cols-[1.2fr_0.8fr_0.6fr_0.7fr_0.5fr_0.8fr_1fr_140px] gap-3 items-center px-5 py-3 border-b border-bg-primary last:border-0"
+                >
+                  <span className="text-sm font-medium text-text-primary truncate">{w.worker_id}</span>
+                  <span className="text-xs text-text-muted truncate">{w.hostname || '—'}</span>
+                  <span className="text-xs text-text-secondary">{w.worker_label}</span>
+                  <StatusBadge status={w.status.toUpperCase()} />
+                  <span className={`text-xs font-medium ${w.is_enabled ? 'text-emerald-400' : 'text-red-400'}`}>{w.is_enabled ? 'Yes' : 'No'}</span>
+                  <span className="text-xs text-text-muted font-mono truncate">{w.current_run_id || '—'}</span>
+                  <span className="text-xs text-text-muted">{w.last_heartbeat ? timeAgo(w.last_heartbeat) : '—'}</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
+                      onClick={() => openEdit(w)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-amber-400 hover:border-amber-400"
+                      onClick={() => setConfirmStop(w.worker_id)}
+                    >
+                      Stop
+                    </button>
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
+                      onClick={() => setConfirmDelete(w.worker_id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

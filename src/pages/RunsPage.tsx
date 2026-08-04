@@ -51,7 +51,7 @@ function ActionDropdown({ run, onAction }: { run: RunResponse; onAction: (action
         Actions ▾
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-40 bg-bg-secondary border border-border rounded-lg shadow-xl z-50 py-1">
+        <div className="absolute right-0 bottom-full mb-1 w-40 bg-bg-secondary border border-border rounded-lg shadow-xl z-50 py-1">
           {run.valid_actions.map(action => (
             <button
               key={action}
@@ -139,7 +139,7 @@ export function RunsPage() {
 
       <div className="flex-1 overflow-y-auto p-6">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard value={counts.running} label="Running" color="text-blue-400" />
           <StatCard value={counts.userAction} label="User Action" color="text-emerald-400" />
           <StatCard value={counts.awaiting} label="Awaiting Human" color="text-amber-400" />
@@ -147,9 +147,10 @@ export function RunsPage() {
         </div>
 
         {/* Run list */}
+        <div className="overflow-x-auto">
         <div className="bg-bg-secondary border border-border rounded-xl">
           {/* Filter panel */}
-          <div className="px-5 py-3 border-b border-border flex items-center gap-4">
+          <div className="px-5 py-3 border-b border-border flex flex-wrap items-center gap-4">
             <span className="text-xs text-text-muted uppercase tracking-wider">Filters:</span>
             <select
               value={statusFilter}
@@ -191,28 +192,57 @@ export function RunsPage() {
               {runs.length === 0 ? 'No active runs' : 'No runs match the current filters'}
             </div>
           ) : (
-            filteredRuns.map(run => (
-              <div
-                key={run.run_id}
-                className="grid grid-cols-[140px_1fr_130px_140px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
-                onClick={() => setSelectedRun(run)}
-              >
-                <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
-                <span className="text-sm text-text-secondary">{run.workflow_name}</span>
-                <StatusBadge status={run.run_status} />
-                <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
-                <div className="flex justify-end" onClick={e => e.stopPropagation()}>
-                  <ActionDropdown run={run} onAction={handleAction} />
-                </div>
+            <>
+              {/* Mobile card layout */}
+              <div className="md:hidden divide-y divide-bg-primary">
+                {filteredRuns.map(run => (
+                  <div
+                    key={run.run_id}
+                    className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
+                    onClick={() => setSelectedRun(run)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
+                      <StatusBadge status={run.run_status} />
+                    </div>
+                    <div className="text-sm text-text-secondary mb-1 truncate">{run.workflow_name}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
+                      <div onClick={e => e.stopPropagation()}>
+                        <ActionDropdown run={run} onAction={handleAction} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))
+
+              {/* Desktop grid layout */}
+              <div className="hidden md:block">
+                {filteredRuns.map(run => (
+                  <div
+                    key={run.run_id}
+                    className="grid grid-cols-[140px_1fr_130px_140px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
+                    onClick={() => setSelectedRun(run)}
+                  >
+                    <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
+                    <span className="text-sm text-text-secondary">{run.workflow_name}</span>
+                    <StatusBadge status={run.run_status} />
+                    <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
+                    <div className="flex justify-end" onClick={e => e.stopPropagation()}>
+                      <ActionDropdown run={run} onAction={handleAction} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
+        </div>
         </div>
       </div>
 
       {/* Detail panel */}
       {currentSelectedRun && (
-        <div className="fixed top-0 right-0 w-[480px] h-screen bg-bg-secondary border-l border-border shadow-2xl flex flex-col z-40">
+        <div className="fixed top-0 right-0 w-full sm:w-[480px] h-screen bg-bg-secondary border-l border-border shadow-2xl flex flex-col z-40">
           <div className="p-5 border-b border-border flex justify-between items-start">
             <div>
               <div className="text-xs text-text-muted mb-1">Run Detail</div>

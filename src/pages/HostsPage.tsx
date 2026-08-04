@@ -59,7 +59,8 @@ export function HostsPage() {
           <div className="text-text-muted text-center py-12">No hosts registered</div>
         ) : (
           <div className="bg-bg-secondary border border-border rounded-xl">
-            <div className="grid grid-cols-[1.5fr_1fr_0.8fr_1.2fr_1.2fr_120px] gap-3 px-5 py-2.5 border-b border-border text-xs text-text-muted uppercase tracking-wider">
+            {/* Desktop header */}
+            <div className="hidden md:grid grid-cols-[1.5fr_1fr_0.8fr_1.2fr_1.2fr_120px] gap-3 px-5 py-2.5 border-b border-border text-xs text-text-muted uppercase tracking-wider">
               <span>Hostname</span>
               <span>IP Address</span>
               <span>OS</span>
@@ -67,32 +68,67 @@ export function HostsPage() {
               <span>Updated</span>
               <span />
             </div>
-            {list.map(h => (
-              <div
-                key={h.id}
-                className="grid grid-cols-[1.5fr_1fr_0.8fr_1.2fr_1.2fr_120px] gap-3 items-center px-5 py-3 border-b border-bg-primary last:border-0"
-              >
-                <span className="text-sm font-medium text-text-primary truncate">{h.hostname}</span>
-                <span className="text-xs text-text-muted font-mono">{h.ip_address || '—'}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-text-muted uppercase">{h.os_type}</span>
-                <span className="text-xs text-text-muted">{formatDate(h.created_at)}</span>
-                <span className="text-xs text-text-muted">{formatDate(h.updated_at)}</span>
-                <div className="flex gap-1.5">
-                  <button
-                    className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
-                    onClick={() => openEdit(h)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
-                    onClick={() => setDeleteId(h.id)}
-                  >
-                    Delete
-                  </button>
+
+            {/* Mobile card layout */}
+            <div className="md:hidden divide-y divide-bg-primary">
+              {list.map(h => (
+                <div key={h.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-text-primary">{h.hostname}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-text-muted uppercase">{h.os_type}</span>
+                  </div>
+                  <div className="text-xs text-text-muted font-mono">{h.ip_address || '—'}</div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-muted">
+                    <span>Created: {formatDate(h.created_at)}</span>
+                    <span>Updated: {formatDate(h.updated_at)}</span>
+                  </div>
+                  <div className="flex gap-1.5 pt-1">
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
+                      onClick={() => openEdit(h)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
+                      onClick={() => setDeleteId(h.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Desktop grid rows */}
+            <div className="hidden md:block">
+              {list.map(h => (
+                <div
+                  key={h.id}
+                  className="grid grid-cols-[1.5fr_1fr_0.8fr_1.2fr_1.2fr_120px] gap-3 items-center px-5 py-3 border-b border-bg-primary last:border-0"
+                >
+                  <span className="text-sm font-medium text-text-primary truncate">{h.hostname}</span>
+                  <span className="text-xs text-text-muted font-mono">{h.ip_address || '—'}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-text-muted uppercase">{h.os_type}</span>
+                  <span className="text-xs text-text-muted">{formatDate(h.created_at)}</span>
+                  <span className="text-xs text-text-muted">{formatDate(h.updated_at)}</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
+                      onClick={() => openEdit(h)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
+                      onClick={() => setDeleteId(h.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -39,7 +39,7 @@ export function HistoryPage() {
     <>
       <header className="h-14 bg-bg-secondary border-b border-border flex items-center px-6 justify-between shrink-0">
         <h2 className="text-lg font-semibold">Job History</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {statusGroups.map(g => (
             <button
               key={g.value}
@@ -57,7 +57,8 @@ export function HistoryPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="bg-bg-secondary border border-border rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+        <div className="bg-bg-secondary border border-border rounded-xl">
           <div className="px-5 py-3.5 border-b border-border flex justify-between items-center">
             <h3 className="text-sm font-semibold">All Runs</h3>
             <span className="text-xs text-text-muted">
@@ -69,9 +70,32 @@ export function HistoryPage() {
           ) : filtered.length === 0 ? (
             <div className="p-8 text-center text-text-muted">No runs found</div>
           ) : (
-            filtered.map(run => (
-              <RunRow key={run.run_id} run={run} />
-            ))
+            <>
+              {/* Mobile card layout */}
+              <div className="md:hidden divide-y divide-bg-primary">
+                {filtered.map(run => (
+                  <div key={run.run_id} className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
+                      <StatusBadge status={run.run_status} />
+                    </div>
+                    <div className="text-sm text-text-secondary truncate">{run.workflow_name}</div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-muted">
+                      <span className="font-mono">{run.current_step || '—'}</span>
+                      <span>{run.worker_id || '—'}</span>
+                      <span>{formatTime(run.updated_at)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop grid layout */}
+              <div className="hidden md:block">
+                {filtered.map(run => (
+                  <RunRow key={run.run_id} run={run} />
+                ))}
+              </div>
+            </>
           )}
           {/* Pagination */}
           <div className="px-5 py-3 border-t border-border flex items-center justify-between">
@@ -93,6 +117,7 @@ export function HistoryPage() {
               Next →
             </button>
           </div>
+        </div>
         </div>
       </div>
     </>

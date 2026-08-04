@@ -266,7 +266,7 @@ export function ReposPage() {
 
 function Breadcrumb({ view, onNavigate }: { view: View; onNavigate: (v: View) => void }) {
   return (
-    <div className="flex items-center gap-1.5 text-sm">
+    <div className="flex flex-wrap items-center gap-1.5 text-sm">
       <button
         className="text-text-muted hover:text-text-primary transition-colors"
         onClick={() => onNavigate({ level: 'workers' })}
@@ -319,15 +319,19 @@ function WorkerList({
         return (
           <div
             key={wid}
-            className="grid grid-cols-[1fr_auto_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer transition-colors"
+            className="px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer transition-colors"
             onClick={() => onSelect(wid)}
           >
-            <div>
-              <div className="text-sm font-medium text-text-primary">{wid}</div>
-              <div className="text-xs text-text-muted">{meta?.hostname || 'unknown host'}</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-text-primary">{wid}</div>
+                <div className="text-xs text-text-muted">{meta?.hostname || 'unknown host'}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-text-muted">{count} repo{count !== 1 ? 's' : ''}</span>
+                <span className="text-text-muted">→</span>
+              </div>
             </div>
-            <span className="text-xs text-text-muted">{count} repo{count !== 1 ? 's' : ''}</span>
-            <span className="text-text-muted">→</span>
           </div>
         );
       })}
@@ -361,34 +365,74 @@ function RepoList({
         {repos.length === 0 ? (
           <div className="p-8 text-center text-text-muted">No repos for this worker</div>
         ) : (
-          repos.map(repo => (
-            <div
-              key={repo.id}
-              className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3"
-            >
-              <div
-                className="min-w-0 cursor-pointer hover:text-accent transition-colors"
-                onClick={() => onSelect(repo)}
-              >
-                <div className="text-sm font-medium text-text-primary truncate">{repo.name}</div>
-                <div className="text-xs text-text-muted font-mono truncate">{repo.path}</div>
-              </div>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-text-muted uppercase">{repo.os_type || '—'}</span>
-              <span className="text-xs text-text-muted">{repo.workflows.length} workflow{repo.workflows.length !== 1 ? 's' : ''}</span>
-              <button
-                className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
-                onClick={() => onEdit(repo)}
-              >
-                Edit
-              </button>
-              <button
-                className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
-                onClick={() => onDelete(repo)}
-              >
-                Delete
-              </button>
+          <>
+            {/* Mobile card layout */}
+            <div className="md:hidden divide-y divide-bg-primary">
+              {repos.map(repo => (
+                <div key={repo.id} className="p-4">
+                  <div
+                    className="cursor-pointer hover:text-accent transition-colors mb-2"
+                    onClick={() => onSelect(repo)}
+                  >
+                    <div className="text-sm font-medium text-text-primary">{repo.name}</div>
+                    <div className="text-xs text-text-muted font-mono truncate">{repo.path}</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-text-muted uppercase">{repo.os_type || '—'}</span>
+                      <span className="text-xs text-text-muted">{repo.workflows.length} workflow{repo.workflows.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
+                        onClick={() => onEdit(repo)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
+                        onClick={() => onDelete(repo)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))
+
+            {/* Desktop grid layout */}
+            <div className="hidden md:block">
+              {repos.map(repo => (
+                <div
+                  key={repo.id}
+                  className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3"
+                >
+                  <div
+                    className="min-w-0 cursor-pointer hover:text-accent transition-colors"
+                    onClick={() => onSelect(repo)}
+                  >
+                    <div className="text-sm font-medium text-text-primary truncate">{repo.name}</div>
+                    <div className="text-xs text-text-muted font-mono truncate">{repo.path}</div>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-text-muted uppercase">{repo.os_type || '—'}</span>
+                  <span className="text-xs text-text-muted">{repo.workflows.length} workflow{repo.workflows.length !== 1 ? 's' : ''}</span>
+                  <button
+                    className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
+                    onClick={() => onEdit(repo)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
+                    onClick={() => onDelete(repo)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -441,16 +485,32 @@ function WorkflowGrid({
           </div>
         )}
         {workflows.map(wf => (
-          <div key={wf.id} className="grid grid-cols-[1fr_80px_100px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3">
-            <span className="text-sm text-text-primary">{wf.display_name || wf.workflow_name}</span>
-            <span className="text-xs text-text-muted font-mono">{wf.workflow_name}</span>
-            <span className="text-xs text-text-muted">—</span>
-            <button
-              className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400 justify-self-end"
-              onClick={() => onUnassign(wf.workflow_name)}
-            >
-              Unassign
-            </button>
+          <div key={wf.id} className="border-b border-bg-primary last:border-0">
+            {/* Mobile card */}
+            <div className="md:hidden p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-text-primary">{wf.display_name || wf.workflow_name}</span>
+                <button
+                  className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
+                  onClick={() => onUnassign(wf.workflow_name)}
+                >
+                  Unassign
+                </button>
+              </div>
+              <div className="text-xs text-text-muted font-mono">{wf.workflow_name}</div>
+            </div>
+            {/* Desktop grid row */}
+            <div className="hidden md:grid grid-cols-[1fr_80px_100px_auto] items-center px-5 py-3 gap-3">
+              <span className="text-sm text-text-primary">{wf.display_name || wf.workflow_name}</span>
+              <span className="text-xs text-text-muted font-mono">{wf.workflow_name}</span>
+              <span className="text-xs text-text-muted">—</span>
+              <button
+                className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400 justify-self-end"
+                onClick={() => onUnassign(wf.workflow_name)}
+              >
+                Unassign
+              </button>
+            </div>
           </div>
         ))}
       </div>
