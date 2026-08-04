@@ -13,6 +13,13 @@ const statusStyles: Record<string, string> = {
   COMPLETED: 'bg-green-900/50 text-green-400',
   FAILED: 'bg-red-900/50 text-red-400',
   CANCELLED: 'bg-gray-700/50 text-gray-400',
+  // Worker statuses
+  ACTIVE: 'bg-emerald-900/50 text-emerald-400',
+  IDLE: 'bg-blue-900/30 text-blue-300',
+  BUSY: 'bg-amber-900/50 text-amber-400',
+  STOPPED: 'bg-gray-700/50 text-gray-400',
+  OFFLINE: 'bg-red-900/50 text-red-400',
+  DISABLED: 'bg-gray-800/60 text-gray-500',
 };
 
 const dotStyles: Record<string, string> = {
@@ -30,6 +37,13 @@ const dotStyles: Record<string, string> = {
   COMPLETED: 'bg-green-400',
   FAILED: 'bg-red-400',
   CANCELLED: 'bg-gray-400',
+  // Worker statuses
+  ACTIVE: 'bg-emerald-400 animate-pulse',
+  IDLE: 'bg-blue-400',
+  BUSY: 'bg-amber-400 animate-pulse',
+  STOPPED: 'bg-gray-400',
+  OFFLINE: 'bg-red-400',
+  DISABLED: 'bg-gray-500',
 };
 
 const statusLabels: Record<string, string> = {
@@ -47,6 +61,13 @@ const statusLabels: Record<string, string> = {
   COMPLETED: 'Completed',
   FAILED: 'Failed',
   CANCELLED: 'Cancelled',
+  // Worker statuses
+  ACTIVE: 'Active',
+  IDLE: 'Idle',
+  BUSY: 'Busy',
+  STOPPED: 'Stopped',
+  OFFLINE: 'Offline',
+  DISABLED: 'Disabled',
 };
 
 export function StatusBadge({ status }: { status: string }) {

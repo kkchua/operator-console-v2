@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useRepos, useWorkers, useWorkflows, useCreateRepo, useDeleteRepo, useAssignWorkflow, useUnassignWorkflow } from '../api/hooks';
+import { useRepos, useWorkers, useWorkflows, useCreateRepo, useUpdateRepo, useDeleteRepo, useAssignWorkflow, useUnassignWorkflow } from '../api/hooks';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { RepoResponse } from '../api/types';
 
@@ -14,12 +14,15 @@ export function ReposPage() {
   const { data: workers } = useWorkers();
   const { data: allWorkflows } = useWorkflows();
   const createRepoMut = useCreateRepo();
+  const updateRepoMut = useUpdateRepo();
   const deleteRepoMut = useDeleteRepo();
   const assignMut = useAssignWorkflow();
   const unassignMut = useUnassignWorkflow();
 
   const [view, setView] = useState<View>({ level: 'workers' });
   const [showCreate, setShowCreate] = useState(false);
+  const [editRepo, setEditRepo] = useState<RepoResponse | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', path: '', worker_id: '' });
   const [deleteConfirm, setDeleteConfirm] = useState<RepoResponse | null>(null);
   const [showAssign, setShowAssign] = useState(false);
   const [newRepo, setNewRepo] = useState({ name: '', path: '', worker_id: '' });
@@ -64,6 +67,19 @@ export function ReposPage() {
         setNewRepo({ name: '', path: '', worker_id: '' });
       },
     });
+  };
+
+  const openEdit = (repo: RepoResponse) => {
+    setEditRepo(repo);
+    setEditForm({ name: repo.name, path: repo.path, worker_id: repo.worker_id });
+  };
+
+  const doUpdateRepo = () => {
+    if (!editRepo) return;
+    updateRepoMut.mutate(
+      { repoId: editRepo.id, data: editForm },
+      { onSuccess: () => setEditRepo(null) },
+    );
   };
 
   const doAssign = () => {
@@ -117,6 +133,7 @@ export function ReposPage() {
             repos={reposByWorker.get(view.workerId) ?? []}
             workerList={workerList}
             onSelect={(repo) => setView({ level: 'workflows', workerId: view.workerId, repo })}
+            onEdit={(repo) => openEdit(repo)}
             onDelete={(repo) => setDeleteConfirm(repo)}
           />
         )}
@@ -173,6 +190,51 @@ export function ReposPage() {
               className="w-full bg-bg-input border border-border rounded-md px-3 py-2 text-sm text-text-primary"
               value={newRepo.worker_id}
               onChange={e => setNewRepo({ ...newRepo, worker_id: e.target.value })}
+            >
+              <option value="">Select worker...</option>
+              {workerList.map(w => (
+                <option key={w.worker_id} value={w.worker_id}>
+                  {w.worker_id} ({w.hostname || 'unknown host'})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </ConfirmDialog>
+
+      {/* Edit Repo Dialog */}
+      <ConfirmDialog
+        open={!!editRepo}
+        title={`Edit Repo: ${editRepo?.name ?? ''}`}
+        message=""
+        confirmLabel="Save"
+        confirmVariant="primary"
+        onConfirm={doUpdateRepo}
+        onCancel={() => setEditRepo(null)}
+      >
+        <div className="flex flex-col gap-3 py-2">
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Repo Name</label>
+            <input
+              className="w-full bg-bg-input border border-border rounded-md px-3 py-2 text-sm text-text-primary"
+              value={editForm.name}
+              onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Path</label>
+            <input
+              className="w-full bg-bg-input border border-border rounded-md px-3 py-2 text-sm text-text-primary font-mono"
+              value={editForm.path}
+              onChange={e => setEditForm({ ...editForm, path: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Worker</label>
+            <select
+              className="w-full bg-bg-input border border-border rounded-md px-3 py-2 text-sm text-text-primary"
+              value={editForm.worker_id}
+              onChange={e => setEditForm({ ...editForm, worker_id: e.target.value })}
             >
               <option value="">Select worker...</option>
               {workerList.map(w => (
@@ -274,12 +336,13 @@ function WorkerList({
 }
 
 function RepoList({
-  workerId, repos, workerList, onSelect, onDelete,
+  workerId, repos, workerList, onSelect, onEdit, onDelete,
 }: {
   workerId: string;
   repos: RepoResponse[];
   workerList: { worker_id: string; hostname: string | null }[];
   onSelect: (repo: RepoResponse) => void;
+  onEdit: (repo: RepoResponse) => void;
   onDelete: (repo: RepoResponse) => void;
 }) {
   const worker = workerList.find(w => w.worker_id === workerId);
@@ -301,7 +364,7 @@ function RepoList({
           repos.map(repo => (
             <div
               key={repo.id}
-              className="grid grid-cols-[1fr_auto_auto_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3"
+              className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3"
             >
               <div
                 className="min-w-0 cursor-pointer hover:text-accent transition-colors"
@@ -312,6 +375,12 @@ function RepoList({
               </div>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-text-muted uppercase">{repo.os_type || '—'}</span>
               <span className="text-xs text-text-muted">{repo.workflows.length} workflow{repo.workflows.length !== 1 ? 's' : ''}</span>
+              <button
+                className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-text-primary hover:border-text-muted"
+                onClick={() => onEdit(repo)}
+              >
+                Edit
+              </button>
               <button
                 className="px-2 py-1 rounded text-[11px] border border-border text-text-muted hover:text-red-400 hover:border-red-400"
                 onClick={() => onDelete(repo)}

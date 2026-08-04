@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useActiveRuns, useRequestAction } from '../api/hooks';
+import { useSelectedWorker } from '../components/WorkerContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { RunResponse } from '../api/types';
@@ -72,7 +73,8 @@ function ActionDropdown({ run, onAction }: { run: RunResponse; onAction: (action
 }
 
 export function RunsPage() {
-  const { data, isLoading } = useActiveRuns();
+  const { selectedWorkerId } = useSelectedWorker();
+  const { data, isLoading } = useActiveRuns(5000, selectedWorkerId);
   const actionMut = useRequestAction();
   const [selectedRun, setSelectedRun] = useState<RunResponse | null>(null);
   const [confirm, setConfirm] = useState<{ action: string; run: RunResponse } | null>(null);

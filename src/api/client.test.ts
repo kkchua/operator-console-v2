@@ -182,6 +182,42 @@ describe('stopWorker', () => {
   });
 });
 
+describe('updateWorker', () => {
+  it('puts worker update data', async () => {
+    const data = { worker_label: 'staging', status: 'active' };
+    mockFetch.mockReturnValue(mockOk({ worker_id: 'w1', ...data }));
+    await api.updateWorker('w1', data);
+    expect(mockFetch).toHaveBeenCalledWith('/api/workers/w1', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  });
+
+  it('supports partial updates', async () => {
+    const data = { host_id: 'h1' };
+    mockFetch.mockReturnValue(mockOk({ worker_id: 'w1' }));
+    await api.updateWorker('w1', data);
+    expect(mockFetch).toHaveBeenCalledWith('/api/workers/w1', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  });
+});
+
+describe('deleteWorker', () => {
+  it('deletes worker by id', async () => {
+    mockFetch.mockReturnValue(mockOk({ status: 'ok' }));
+    await api.deleteWorker('w1');
+    expect(mockFetch).toHaveBeenCalledWith('/api/workers/w1', {
+      method: 'DELETE',
+      headers: undefined,
+      body: undefined,
+    });
+  });
+});
+
 // ── Workflows ─────────────────────────────────────────
 
 describe('listWorkflows', () => {

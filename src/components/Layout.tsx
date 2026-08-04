@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { useActiveRuns } from '../api/hooks';
+import { useActiveRuns, useWorkers } from '../api/hooks';
 import { useTheme } from './ThemeProvider';
+import { useSelectedWorker } from './WorkerContext';
 
 const navItems = [
   { to: '/', label: 'Active Runs', icon: '▶', end: true },
@@ -8,13 +9,17 @@ const navItems = [
   { to: '/submit', label: 'Submit Job', icon: '＋' },
   { to: '/repos', label: 'Repos', icon: '📁' },
   { to: '/workers', label: 'Workers', icon: '⚙' },
+  { to: '/hosts', label: 'Hosts', icon: '🖥' },
   { to: '/workflows', label: 'Workflows', icon: '📋' },
 ];
 
 export function Layout() {
   const { data } = useActiveRuns();
+  const { data: workers } = useWorkers();
   const { theme, toggle } = useTheme();
+  const { selectedWorkerId, setSelectedWorkerId } = useSelectedWorker();
   const runCount = data?.runs?.length ?? 0;
+  const workerList = workers ?? [];
 
   return (
     <div className="flex h-screen">
@@ -50,9 +55,17 @@ export function Layout() {
         </nav>
         <div className="p-4 border-t border-border">
           <div className="text-[11px] text-text-muted uppercase tracking-wider mb-1">Worker</div>
-          <select className="w-full bg-bg-input border border-border rounded-md px-2.5 py-2 text-sm text-text-primary focus:outline-none focus:border-accent">
-            <option>worker-1 (live)</option>
-            <option>worker-2 (dev)</option>
+          <select
+            className="w-full bg-bg-input border border-border rounded-md px-2.5 py-2 text-sm text-text-primary focus:outline-none focus:border-accent"
+            value={selectedWorkerId ?? ''}
+            onChange={e => setSelectedWorkerId(e.target.value || null)}
+          >
+            <option value="">All Workers</option>
+            {workerList.map(w => (
+              <option key={w.worker_id} value={w.worker_id}>
+                {w.worker_id} ({w.worker_label})
+              </option>
+            ))}
           </select>
           <button
             onClick={toggle}

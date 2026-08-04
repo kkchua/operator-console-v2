@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAllRuns } from '../api/hooks';
+import { useSelectedWorker } from '../components/WorkerContext';
 import { StatusBadge } from '../components/StatusBadge';
 import type { RunResponse } from '../api/types';
+
+const PAGE_SIZE = 25;
 
 const statusGroups = [
   { label: 'All', value: '' },
@@ -12,13 +15,25 @@ const statusGroups = [
 ];
 
 export function HistoryPage() {
-  const { data, isLoading } = useAllRuns();
+  const { selectedWorkerId } = useSelectedWorker();
+  const [page, setPage] = useState(0);
   const [filter, setFilter] = useState('');
+  const offset = page * PAGE_SIZE;
+  const { data, isLoading } = useAllRuns(10000, selectedWorkerId, PAGE_SIZE, offset);
+
+  // Reset page when worker changes
+  useEffect(() => { setPage(0); }, [selectedWorkerId]);
 
   const runs = data?.runs ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   const filtered = filter
     ? runs.filter(r => filter === 'AWAITING' ? r.run_status.startsWith('AWAITING') : r.run_status === filter)
     : runs;
+
+  // Reset to page 0 when worker or filter changes
+  const onFilterChange = (v: string) => { setFilter(v); setPage(0); };
 
   return (
     <>
@@ -33,7 +48,7 @@ export function HistoryPage() {
                   ? 'bg-accent text-white'
                   : 'bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-primary'
               }`}
-              onClick={() => setFilter(g.value)}
+              onClick={() => onFilterChange(g.value)}
             >
               {g.label}
             </button>
@@ -45,7 +60,9 @@ export function HistoryPage() {
         <div className="bg-bg-secondary border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border flex justify-between items-center">
             <h3 className="text-sm font-semibold">All Runs</h3>
-            <span className="text-xs text-text-muted">{filtered.length} runs</span>
+            <span className="text-xs text-text-muted">
+              {total > 0 ? `${offset + 1}–${Math.min(offset + PAGE_SIZE, total)} of ${total}` : '0 runs'}
+            </span>
           </div>
           {isLoading ? (
             <div className="p-8 text-center text-text-muted">Loading...</div>
@@ -56,6 +73,26 @@ export function HistoryPage() {
               <RunRow key={run.run_id} run={run} />
             ))
           )}
+          {/* Pagination */}
+          <div className="px-5 py-3 border-t border-border flex items-center justify-between">
+            <button
+              className="px-3 py-1.5 rounded text-xs border border-border text-text-muted hover:text-text-primary hover:border-text-muted disabled:opacity-30 disabled:pointer-events-none"
+              disabled={page === 0}
+              onClick={() => setPage(p => p - 1)}
+            >
+              ← Prev
+            </button>
+            <span className="text-xs text-text-muted">
+              Page {page + 1} of {totalPages}
+            </span>
+            <button
+              className="px-3 py-1.5 rounded text-xs border border-border text-text-muted hover:text-text-primary hover:border-text-muted disabled:opacity-30 disabled:pointer-events-none"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage(p => p + 1)}
+            >
+              Next →
+            </button>
+          </div>
         </div>
       </div>
     </>
@@ -76,7 +113,6 @@ function RunRow({ run }: { run: RunResponse }) {
 }
 
 function formatTime(iso: string): string {
-  // Backend returns naive UTC datetimes — append 'Z' to parse as UTC
   const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z');
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();

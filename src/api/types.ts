@@ -15,6 +15,7 @@ export interface RunResponse {
 
 export interface RunListResponse {
   runs: RunResponse[];
+  total: number;
 }
 
 export interface WorkerResponse {
@@ -23,6 +24,8 @@ export interface WorkerResponse {
   hostname: string | null;
   status: string;
   worker_label: string;
+  is_enabled: boolean;
+  capabilities: Record<string, unknown>;
   last_heartbeat: string | null;
   current_run_id: string | null;
 }

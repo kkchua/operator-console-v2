@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useRepos, useWorkflows, useSubmitRun } from '../api/hooks';
+import { useSelectedWorker } from '../components/WorkerContext';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function SubmitPage() {
+  const { selectedWorkerId } = useSelectedWorker();
   const { data: repos } = useRepos();
   const { data: allWorkflows } = useWorkflows();
   const submitMut = useSubmitRun();
@@ -11,7 +13,7 @@ export function SubmitPage() {
   const [startStep, setStartStep] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const repoList = repos ?? [];
+  const repoList = (repos ?? []).filter(r => !selectedWorkerId || r.worker_id === selectedWorkerId);
   const selectedRepo = repoList.find(r => r.id === repoId);
 
   // Filter workflows to repo's assignments, or show all if no repo selected
@@ -30,7 +32,7 @@ export function SubmitPage() {
       {
         workflow_name: workflow,
         project_root: selectedRepo?.path || undefined,
-        worker_id: selectedRepo?.worker_id || undefined,
+        worker_id: selectedRepo?.worker_id || selectedWorkerId || undefined,
         start_step: startStep || undefined,
       },
       {

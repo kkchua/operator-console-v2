@@ -31,11 +31,21 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 // Runs
-export const listRuns = (status?: string) =>
-  request<RunListResponse>('GET', `/runs${status ? `?status=${status}` : ''}`);
+export const listRuns = (status?: string, workerId?: string) => {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (workerId) params.set('worker_id', workerId);
+  const qs = params.toString();
+  return request<RunListResponse>('GET', `/runs${qs ? `?${qs}` : ''}`);
+};
 
-export const listAllRuns = () =>
-  request<RunListResponse>('GET', '/runs');
+export const listAllRuns = (workerId?: string, limit = 100, offset = 0) => {
+  const params = new URLSearchParams();
+  if (workerId) params.set('worker_id', workerId);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  return request<RunListResponse>('GET', `/runs?${params.toString()}`);
+};
 
 export const getRun = (runId: string) =>
   request<RunResponse>('GET', `/runs/${runId}`);
@@ -68,6 +78,12 @@ export const heartbeat = (workerId: string, status = 'idle') =>
 export const stopWorker = (workerId: string) =>
   request<{ status: string }>('POST', `/workers/${workerId}/stop`);
 
+export const updateWorker = (workerId: string, data: Partial<{ worker_label: string; status: string; is_enabled: boolean; capabilities: Record<string, unknown>; host_id: string }>) =>
+  request<WorkerResponse>('PUT', `/workers/${workerId}`, data);
+
+export const deleteWorker = (workerId: string) =>
+  request<{ status: string }>('DELETE', `/workers/${workerId}`);
+
 // Workflows
 export const listWorkflows = () =>
   request<WorkflowResponse[]>('GET', '/workflows');
@@ -84,6 +100,9 @@ export const createHost = (data: CreateHostRequest) =>
 
 export const deleteHost = (hostId: string) =>
   request<{ status: string }>('DELETE', `/hosts/${hostId}`);
+
+export const updateHost = (hostId: string, data: Partial<{ hostname: string; ip_address: string; os_type: string }>) =>
+  request<HostResponse>('PUT', `/hosts/${hostId}`, data);
 
 // Repos
 export const listRepos = () =>
