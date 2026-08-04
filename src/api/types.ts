@@ -117,3 +117,20 @@ export interface AssignWorkflowRequest {
   workflow_name: string;
   display_name?: string;
 }
+
+// Auth
+export interface UserInfoResponse {
+  user_id: string;
+  email: string;
+  role: string;
+  is_service_account: boolean;
+}
+
+export interface NavigationItem {
+  id: string;
+  label: string;
+  icon: string;
+  path: string;
+  required_roles: string[];
+  children?: NavigationItem[];
+}

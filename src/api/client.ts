@@ -13,16 +13,35 @@ import type {
   CreateRepoRequest,
   AssignWorkflowRequest,
   RepoWorkflowResponse,
+  UserInfoResponse,
+  NavigationItem,
 } from './types';
+import { supabase } from '../lib/supabase';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return { Authorization: `Bearer ${session.access_token}` };
+  }
+  return {};
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: {
+      ...authHeaders,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 401) {
+    await supabase.auth.signOut();
+    throw new Error('Session expired. Please sign in again.');
+  }
   if (!res.ok) {
     const detail = await res.text();
     throw new Error(`${method} ${path} failed (${res.status}): ${detail}`);
@@ -122,3 +141,10 @@ export const assignWorkflow = (repoId: string, data: AssignWorkflowRequest) =>
 
 export const unassignWorkflow = (repoId: string, workflowName: string) =>
   request<{ status: string }>('DELETE', `/repos/${repoId}/workflows/${workflowName}`);
+
+// Auth
+export const getMe = () =>
+  request<UserInfoResponse>('GET', '/auth/me');
+
+export const getNavigation = (appId = 'agent-runner') =>
+  request<NavigationItem[]>('GET', `/auth/navigation?app_id=${appId}`);

@@ -1,4 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: null } }),
+      signOut: () => Promise.resolve(),
+    },
+  },
+}));
+
 import * as api from './client';
 
 const mockFetch = vi.fn();
@@ -22,7 +32,7 @@ describe('listRuns', () => {
   it('fetches all runs when no status given', async () => {
     mockFetch.mockReturnValue(mockOk({ runs: [] }));
     await api.listRuns();
-    expect(mockFetch).toHaveBeenCalledWith('/api/runs', { method: 'GET', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/runs', { method: 'GET', headers: {}, body: undefined });
   });
 
   it('appends status query param', async () => {
@@ -37,7 +47,7 @@ describe('listAllRuns', () => {
     const data = { runs: [{ run_id: 'r1' }] };
     mockFetch.mockReturnValue(mockOk(data));
     const result = await api.listAllRuns();
-    expect(mockFetch).toHaveBeenCalledWith('/api/runs', { method: 'GET', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/runs?limit=100&offset=0', { method: 'GET', headers: {}, body: undefined });
     expect(result).toEqual(data);
   });
 });
@@ -47,7 +57,7 @@ describe('getRun', () => {
     const data = { run_id: 'r1', workflow_name: 'test' };
     mockFetch.mockReturnValue(mockOk(data));
     const result = await api.getRun('r1');
-    expect(mockFetch).toHaveBeenCalledWith('/api/runs/r1', { method: 'GET', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/runs/r1', { method: 'GET', headers: {}, body: undefined });
     expect(result).toEqual(data);
   });
 });
@@ -121,7 +131,7 @@ describe('listWorkers', () => {
     const data = [{ worker_id: 'w1' }];
     mockFetch.mockReturnValue(mockOk(data));
     const result = await api.listWorkers();
-    expect(mockFetch).toHaveBeenCalledWith('/api/workers', { method: 'GET', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/workers', { method: 'GET', headers: {}, body: undefined });
     expect(result).toEqual(data);
   });
 });
@@ -176,7 +186,7 @@ describe('stopWorker', () => {
     await api.stopWorker('w1');
     expect(mockFetch).toHaveBeenCalledWith('/api/workers/w1/stop', {
       method: 'POST',
-      headers: undefined,
+      headers: {},
       body: undefined,
     });
   });
@@ -212,7 +222,7 @@ describe('deleteWorker', () => {
     await api.deleteWorker('w1');
     expect(mockFetch).toHaveBeenCalledWith('/api/workers/w1', {
       method: 'DELETE',
-      headers: undefined,
+      headers: {},
       body: undefined,
     });
   });
@@ -225,7 +235,7 @@ describe('listWorkflows', () => {
     const data = [{ workflow_name: 'wf1' }];
     mockFetch.mockReturnValue(mockOk(data));
     const result = await api.listWorkflows();
-    expect(mockFetch).toHaveBeenCalledWith('/api/workflows', { method: 'GET', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/workflows', { method: 'GET', headers: {}, body: undefined });
     expect(result).toEqual(data);
   });
 });
@@ -249,7 +259,7 @@ describe('listHosts', () => {
   it('fetches GET /hosts', async () => {
     mockFetch.mockReturnValue(mockOk([]));
     await api.listHosts();
-    expect(mockFetch).toHaveBeenCalledWith('/api/hosts', { method: 'GET', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/hosts', { method: 'GET', headers: {}, body: undefined });
   });
 });
 
@@ -270,7 +280,7 @@ describe('deleteHost', () => {
   it('deletes host by id', async () => {
     mockFetch.mockReturnValue(mockOk({ status: 'deleted' }));
     await api.deleteHost('h1');
-    expect(mockFetch).toHaveBeenCalledWith('/api/hosts/h1', { method: 'DELETE', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/hosts/h1', { method: 'DELETE', headers: {}, body: undefined });
   });
 });
 
@@ -280,7 +290,7 @@ describe('listRepos', () => {
   it('fetches GET /repos', async () => {
     mockFetch.mockReturnValue(mockOk([]));
     await api.listRepos();
-    expect(mockFetch).toHaveBeenCalledWith('/api/repos', { method: 'GET', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/repos', { method: 'GET', headers: {}, body: undefined });
   });
 });
 
@@ -314,7 +324,7 @@ describe('deleteRepo', () => {
   it('deletes repo by id', async () => {
     mockFetch.mockReturnValue(mockOk({ status: 'deleted' }));
     await api.deleteRepo('r1');
-    expect(mockFetch).toHaveBeenCalledWith('/api/repos/r1', { method: 'DELETE', headers: undefined, body: undefined });
+    expect(mockFetch).toHaveBeenCalledWith('/api/repos/r1', { method: 'DELETE', headers: {}, body: undefined });
   });
 });
 
@@ -337,7 +347,7 @@ describe('unassignWorkflow', () => {
     await api.unassignWorkflow('r1', 'wf1');
     expect(mockFetch).toHaveBeenCalledWith('/api/repos/r1/workflows/wf1', {
       method: 'DELETE',
-      headers: undefined,
+      headers: {},
       body: undefined,
     });
   });

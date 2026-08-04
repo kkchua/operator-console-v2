@@ -230,3 +230,11 @@ export function useUnassignWorkflow() {
     },
   });
 }
+
+// Auth
+export function useNavigation() {
+  return useQuery({
+    queryKey: ['navigation'],
+    queryFn: () => api.getNavigation(),
+  });
+}
