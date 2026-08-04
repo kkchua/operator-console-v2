@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from './client';
-import type { SubmitRunRequest, ActionRequest, CreateRepoRequest, AssignWorkflowRequest, CreateHostRequest } from './types';
+import type { SubmitRunRequest, ActionRequest, CreateRepoRequest, AssignWorkflowRequest, CreateHostRequest, RepoResponse } from './types';
 
 export function useActiveRuns(refreshInterval = 5000) {
   return useQuery({
@@ -136,8 +136,12 @@ export function useAssignWorkflow() {
   return useMutation({
     mutationFn: ({ repoId, data }: { repoId: string; data: AssignWorkflowRequest }) =>
       api.assignWorkflow(repoId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['repos'] });
+    onSuccess: (newWf, { repoId }) => {
+      qc.setQueryData<RepoResponse[]>(['repos'], old => {
+        if (!old) return old;
+        return old.map(r => r.id !== repoId ? r : { ...r, workflows: [...r.workflows, newWf] });
+      });
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['repos'] }), 2000);
     },
   });
 }
@@ -147,8 +151,12 @@ export function useUnassignWorkflow() {
   return useMutation({
     mutationFn: ({ repoId, workflowName }: { repoId: string; workflowName: string }) =>
       api.unassignWorkflow(repoId, workflowName),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['repos'] });
+    onSuccess: (_data, { repoId, workflowName }) => {
+      qc.setQueryData<RepoResponse[]>(['repos'], old => {
+        if (!old) return old;
+        return old.map(r => r.id !== repoId ? r : { ...r, workflows: r.workflows.filter(w => w.workflow_name !== workflowName) });
+      });
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['repos'] }), 2000);
     },
   });
 }
