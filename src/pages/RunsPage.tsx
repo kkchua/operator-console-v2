@@ -25,6 +25,7 @@ const actionMessages: Record<string, string> = {
 };
 
 const AWAITING_STATUSES = ['WAITING_FOR_HUMAN_APPROVAL', 'AWAITING_INTERVENTION', 'AWAITING_MAXRETRIED'];
+const USER_ACTION_STATUSES = ['USER_APPROVED', 'USER_REJECTED', 'USER_RESUMED', 'USER_RETRIED'];
 
 function ActionDropdown({ run, onAction }: { run: RunResponse; onAction: (action: string, run: RunResponse) => void }) {
   const [open, setOpen] = useState(false);
@@ -75,13 +76,38 @@ export function RunsPage() {
   const actionMut = useRequestAction();
   const [selectedRun, setSelectedRun] = useState<RunResponse | null>(null);
   const [confirm, setConfirm] = useState<{ action: string; run: RunResponse } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [workflowFilter, setWorkflowFilter] = useState<string>('all');
 
   const runs = data?.runs ?? [];
   const counts = {
     running: runs.filter(r => r.run_status === 'RUNNING').length,
     awaiting: runs.filter(r => AWAITING_STATUSES.includes(r.run_status)).length,
-    pending: runs.filter(r => r.run_status === 'PENDING' || r.run_status === 'SUBMITTED').length,
+    userAction: runs.filter(r => USER_ACTION_STATUSES.includes(r.run_status)).length,
+    pending: runs.filter(r => r.run_status === 'PENDING' || r.run_status === 'USER_SUBMITTED').length,
   };
+
+  // Keep selectedRun in sync with refreshed data
+  const currentSelectedRun = selectedRun
+    ? runs.find(r => r.run_id === selectedRun.run_id) || selectedRun
+    : null;
+
+  // Get unique workflow names for filter dropdown
+  const workflows = [...new Set(runs.map(r => r.workflow_name))].sort();
+
+  // Filter runs
+  const filteredRuns = runs.filter(r => {
+    // Status filter
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'running' && r.run_status !== 'RUNNING') return false;
+      if (statusFilter === 'userAction' && !USER_ACTION_STATUSES.includes(r.run_status)) return false;
+      if (statusFilter === 'awaiting' && !AWAITING_STATUSES.includes(r.run_status)) return false;
+      if (statusFilter === 'pending' && r.run_status !== 'PENDING' && r.run_status !== 'USER_SUBMITTED') return false;
+    }
+    // Workflow filter
+    if (workflowFilter !== 'all' && r.workflow_name !== workflowFilter) return false;
+    return true;
+  });
 
   const handleAction = (action: string, run: RunResponse) => {
     setConfirm({ action, run });
@@ -113,22 +139,57 @@ export function RunsPage() {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <StatCard value={counts.running} label="Running" color="text-blue-400" />
-          <StatCard value={counts.awaiting} label="Awaiting Action" color="text-amber-400" />
+          <StatCard value={counts.userAction} label="User Action" color="text-emerald-400" />
+          <StatCard value={counts.awaiting} label="Awaiting Human" color="text-amber-400" />
           <StatCard value={counts.pending} label="Pending" color="text-blue-300" />
         </div>
 
         {/* Run list */}
         <div className="bg-bg-secondary border border-border rounded-xl">
+          {/* Filter panel */}
+          <div className="px-5 py-3 border-b border-border flex items-center gap-4">
+            <span className="text-xs text-text-muted uppercase tracking-wider">Filters:</span>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-2.5 py-1 rounded text-xs bg-bg-primary border border-border text-text-secondary focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="running">Running</option>
+              <option value="userAction">User Action</option>
+              <option value="awaiting">Awaiting Human</option>
+              <option value="pending">Pending</option>
+            </select>
+            <select
+              value={workflowFilter}
+              onChange={e => setWorkflowFilter(e.target.value)}
+              className="px-2.5 py-1 rounded text-xs bg-bg-primary border border-border text-text-secondary focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All Workflows</option>
+              {workflows.map(w => <option key={w} value={w}>{w}</option>)}
+            </select>
+            {(statusFilter !== 'all' || workflowFilter !== 'all') && (
+              <button
+                onClick={() => { setStatusFilter('all'); setWorkflowFilter('all'); }}
+                className="px-2 py-1 rounded text-xs text-text-muted hover:text-text-primary hover:bg-white/5"
+              >
+                Clear
+              </button>
+            )}
+            <span className="ml-auto text-xs text-text-muted">{filteredRuns.length} of {runs.length} runs</span>
+          </div>
           <div className="px-5 py-3.5 border-b border-border flex justify-between items-center">
             <h3 className="text-sm font-semibold">Active Runs</h3>
             <span className="text-xs text-text-muted">{runs.length} runs</span>
           </div>
           {isLoading ? (
             <div className="p-8 text-center text-text-muted">Loading...</div>
-          ) : runs.length === 0 ? (
-            <div className="p-8 text-center text-text-muted">No active runs</div>
+          ) : filteredRuns.length === 0 ? (
+            <div className="p-8 text-center text-text-muted">
+              {runs.length === 0 ? 'No active runs' : 'No runs match the current filters'}
+            </div>
           ) : (
-            runs.map(run => (
+            filteredRuns.map(run => (
               <div
                 key={run.run_id}
                 className="grid grid-cols-[140px_1fr_130px_140px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
@@ -148,32 +209,32 @@ export function RunsPage() {
       </div>
 
       {/* Detail panel */}
-      {selectedRun && (
+      {currentSelectedRun && (
         <div className="fixed top-0 right-0 w-[480px] h-screen bg-bg-secondary border-l border-border shadow-2xl flex flex-col z-40">
           <div className="p-5 border-b border-border flex justify-between items-start">
             <div>
               <div className="text-xs text-text-muted mb-1">Run Detail</div>
-              <h3 className="font-mono text-lg">{selectedRun.run_code}</h3>
+              <h3 className="font-mono text-lg">{currentSelectedRun.run_code}</h3>
             </div>
             <button className="px-2 py-1 rounded border border-border text-text-muted hover:text-text-primary" onClick={() => setSelectedRun(null)}>✕</button>
           </div>
           <div className="flex-1 overflow-y-auto p-5">
             <DetailSection title="State">
-              <DetailField label="Status"><StatusBadge status={selectedRun.run_status} /></DetailField>
+              <DetailField label="Status"><StatusBadge status={currentSelectedRun.run_status} /></DetailField>
               <DetailField label="Action Requested">
-                <span className="font-mono text-text-secondary">{selectedRun.action_requested || '—'}</span>
+                <span className="font-mono text-text-secondary">{currentSelectedRun.action_requested || '—'}</span>
               </DetailField>
-              <DetailField label="Current Step" value={selectedRun.current_step || '—'} />
-              <DetailField label="Workflow" value={selectedRun.workflow_name} />
-              <DetailField label="Worker" value={selectedRun.worker_id || '—'} />
+              <DetailField label="Current Step" value={currentSelectedRun.current_step || '—'} />
+              <DetailField label="Workflow" value={currentSelectedRun.workflow_name} />
+              <DetailField label="Worker" value={currentSelectedRun.worker_id || '—'} />
             </DetailSection>
             <DetailSection title="Timing">
-              <DetailField label="Created" value={toLocalTime(selectedRun.created_at)} />
-              <DetailField label="Updated" value={toLocalTime(selectedRun.updated_at)} />
+              <DetailField label="Created" value={toLocalTime(currentSelectedRun.created_at)} />
+              <DetailField label="Updated" value={toLocalTime(currentSelectedRun.updated_at)} />
             </DetailSection>
           </div>
           <div className="p-4 border-t border-border">
-            <ActionDropdown run={selectedRun} onAction={handleAction} />
+            <ActionDropdown run={currentSelectedRun} onAction={handleAction} />
           </div>
         </div>
       )}

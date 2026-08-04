@@ -7,6 +7,7 @@ export interface RunResponse {
   current_step: string | null;
   current_step_run_id: string | null;
   worker_id: string | null;
+  job_dir: string | null;
   created_at: string;
   updated_at: string;
   valid_actions: string[];
