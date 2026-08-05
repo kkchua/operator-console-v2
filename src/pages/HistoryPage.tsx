@@ -18,6 +18,7 @@ export function HistoryPage() {
   const { selectedWorkerId } = useSelectedWorker();
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState('');
+  const [selectedRun, setSelectedRun] = useState<RunResponse | null>(null);
   const offset = page * PAGE_SIZE;
   const { data, isLoading } = useAllRuns(10000, selectedWorkerId, PAGE_SIZE, offset);
   const { data: repos } = useRepos();
@@ -29,13 +30,11 @@ export function HistoryPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // Build workflow_name → repo_name lookup
-  const workflowToRepo = useMemo(() => {
+  // Build path → repo_name lookup (project_root matches repo.path)
+  const pathToRepo = useMemo(() => {
     const map = new Map<string, string>();
     for (const repo of repos ?? []) {
-      for (const wf of repo.workflows) {
-        map.set(wf.workflow_name, repo.name);
-      }
+      if (repo.path) map.set(repo.path, repo.name);
     }
     return map;
   }, [repos]);
@@ -87,13 +86,13 @@ export function HistoryPage() {
               <div className="md:hidden divide-y divide-bg-primary">
                 {filtered.map(run => (
                   <div key={run.run_id} className="p-4 space-y-2">
+                    <div className="text-sm text-text-muted truncate">{pathToRepo.get(run.project_root ?? '') || '—'}</div>
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
                       <StatusBadge status={run.run_status} />
                     </div>
                     <div className="text-sm text-text-secondary truncate">{run.workflow_name}</div>
-                    <div className="text-xs text-text-muted mb-1">{workflowToRepo.get(run.workflow_name) || '—'}</div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-muted">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-text-muted">
                       <span className="font-mono">{run.current_step || '—'}</span>
                       <span>{run.worker_id || '—'}</span>
                       <span>{formatTime(run.updated_at)}</span>
@@ -105,7 +104,7 @@ export function HistoryPage() {
               {/* Desktop grid layout */}
               <div className="hidden md:block">
                 {filtered.map(run => (
-                  <RunRow key={run.run_id} run={run} repoName={workflowToRepo.get(run.workflow_name) || '—'} />
+                  <RunRow key={run.run_id} run={run} repoName={pathToRepo.get(run.project_root ?? '') || '—'} onClick={() => setSelectedRun(run)} />
                 ))}
               </div>
             </>
@@ -133,20 +132,54 @@ export function HistoryPage() {
         </div>
         </div>
       </div>
+
+      {/* Detail panel */}
+      {selectedRun && (
+        <div className="fixed top-0 right-0 w-full sm:w-[480px] h-screen bg-bg-secondary border-l border-border shadow-2xl flex flex-col z-40">
+          <div className="p-5 border-b border-border flex justify-between items-start">
+            <div>
+              <div className="text-xs text-text-muted mb-1">Run Detail</div>
+              <h3 className="font-mono text-lg">{selectedRun.run_code}</h3>
+            </div>
+            <button className="px-2 py-1 rounded border border-border text-text-muted hover:text-text-primary" onClick={() => setSelectedRun(null)}>✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-5">
+            <DetailSection title="State">
+              <DetailField label="Status"><StatusBadge status={selectedRun.run_status} /></DetailField>
+              <DetailField label="Current Step" value={selectedRun.current_step || '—'} />
+              <DetailField label="Workflow" value={selectedRun.workflow_name} />
+              <DetailField label="Repo" value={pathToRepo.get(selectedRun.project_root ?? '') || '—'} />
+              <DetailField label="Worker" value={selectedRun.worker_id || '—'} />
+              <DetailField label="Project Root" value={selectedRun.project_root || '—'} />
+              {selectedRun.error_message && (
+                <DetailField label="Error">
+                  <span className="text-red-400 text-xs">{selectedRun.error_message}</span>
+                </DetailField>
+              )}
+            </DetailSection>
+            <DetailSection title="Timing">
+              <DetailField label="Submitted" value={selectedRun.submitted_at ? toLocalTime(selectedRun.submitted_at) : '—'} />
+              <DetailField label="Started" value={selectedRun.started_at ? toLocalTime(selectedRun.started_at) : '—'} />
+              <DetailField label="Completed" value={selectedRun.completed_at ? toLocalTime(selectedRun.completed_at) : '—'} />
+              <DetailField label="Created" value={toLocalTime(selectedRun.created_at)} />
+              <DetailField label="Updated" value={toLocalTime(selectedRun.updated_at)} />
+            </DetailSection>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
-function RunRow({ run, repoName }: { run: RunResponse; repoName: string }) {
+function RunRow({ run, repoName, onClick }: { run: RunResponse; repoName: string; onClick: () => void }) {
   return (
-    <div className="grid grid-cols-[140px_120px_1fr_130px_140px_100px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3">
-      <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
-      <span className="text-xs text-text-muted truncate">{repoName}</span>
+    <div onClick={onClick} className="grid grid-cols-[220px_1fr_130px_140px_120px_100px] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3 hover:bg-white/5 cursor-pointer transition-colors">
+      <span className="text-sm text-text-muted truncate">{repoName}</span>
       <span className="text-sm text-text-secondary truncate">{run.workflow_name}</span>
       <StatusBadge status={run.run_status} />
-      <span className="text-xs text-text-muted font-mono">{run.current_step || '—'}</span>
-      <span className="text-xs text-text-muted">{run.worker_id || '—'}</span>
-      <span className="text-xs text-text-muted">{formatTime(run.updated_at)}</span>
+      <span className="text-sm text-text-muted font-mono">{run.current_step || '—'}</span>
+      <span className="text-sm text-text-muted">{run.worker_id || '—'}</span>
+      <span className="text-sm text-text-muted">{formatTime(run.updated_at)}</span>
     </div>
   );
 }
@@ -161,4 +194,27 @@ function formatTime(iso: string): string {
   const diffHr = Math.floor(diffMin / 60);
   if (diffHr < 24) return `${diffHr}h ago`;
   return d.toLocaleDateString();
+}
+
+function toLocalTime(iso: string): string {
+  const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z');
+  return d.toLocaleString();
+}
+
+function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-5">
+      <h4 className="text-xs uppercase tracking-wider text-text-muted mb-2">{title}</h4>
+      {children}
+    </div>
+  );
+}
+
+function DetailField({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex justify-between py-1.5 text-sm border-b border-bg-primary">
+      <span className="text-text-muted">{label}</span>
+      {children || <span className="font-mono text-text-secondary">{value}</span>}
+    </div>
+  );
 }

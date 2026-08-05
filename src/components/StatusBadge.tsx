@@ -75,7 +75,7 @@ export function StatusBadge({ status }: { status: string }) {
   const dot = dotStyles[status] || 'bg-gray-400';
   const label = statusLabels[status] || status;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${style}`} title={status}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-sm font-medium whitespace-nowrap ${style}`} title={status}>
       <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
       {label}
     </span>

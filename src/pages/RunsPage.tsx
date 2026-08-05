@@ -30,32 +30,52 @@ const USER_ACTION_STATUSES = ['USER_APPROVED', 'USER_REJECTED', 'USER_RESUMED', 
 
 function ActionDropdown({ run, onAction }: { run: RunResponse; onAction: (action: string, run: RunResponse) => void }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
     };
     if (open) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
-  if (run.valid_actions.length === 0) return <span className="text-xs text-text-muted">—</span>;
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, left: rect.right - 160 });
+    }
+    setOpen(o => !o);
+  };
+
+  if (run.valid_actions.length === 0) {
+    return (
+      <button
+        disabled
+        className="px-2.5 py-1 rounded text-sm font-medium bg-white/5 text-text-muted/30 border border-border/30 cursor-not-allowed"
+      >
+        Actions ▾
+      </button>
+    );
+  }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={containerRef} className="relative">
       <button
-        className="px-2.5 py-1 rounded text-xs font-medium bg-white/5 text-text-muted hover:bg-white/10 border border-border"
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        ref={btnRef}
+        className="px-2.5 py-1 rounded text-sm font-medium bg-white/5 text-text-muted hover:bg-white/10 border border-border"
+        onClick={(e) => { e.stopPropagation(); toggle(); }}
       >
         Actions ▾
       </button>
       {open && (
-        <div className="absolute right-0 bottom-full mb-1 w-40 bg-bg-secondary border border-border rounded-lg shadow-xl z-50 py-1">
+        <div style={{ position: 'fixed', top: pos.top, left: pos.left }} className="w-40 bg-bg-secondary border border-border rounded-lg shadow-xl z-[9999] py-1">
           {run.valid_actions.map(action => (
             <button
               key={action}
-              className={`w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-white/10 ${
+              className={`w-full text-left px-3 py-1.5 text-sm font-medium hover:bg-white/10 ${
                 action === 'CANCEL' ? 'text-red-400' :
                 action === 'APPROVE' ? 'text-green-400' :
                 action === 'REJECT' ? 'text-red-400' :
@@ -84,13 +104,11 @@ export function RunsPage() {
 
   const runs = data?.runs ?? [];
 
-  // Build workflow_name → repo_name lookup
-  const workflowToRepo = useMemo(() => {
+  // Build path → repo_name lookup (project_root matches repo.path)
+  const pathToRepo = useMemo(() => {
     const map = new Map<string, string>();
     for (const repo of repos ?? []) {
-      for (const wf of repo.workflows) {
-        map.set(wf.workflow_name, repo.name);
-      }
+      if (repo.path) map.set(repo.path, repo.name);
     }
     return map;
   }, [repos]);
@@ -213,14 +231,14 @@ export function RunsPage() {
                     className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
                     onClick={() => setSelectedRun(run)}
                   >
+                    <div className="text-sm text-text-muted mb-0.5 truncate">{pathToRepo.get(run.project_root ?? '') || '—'}</div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
                       <StatusBadge status={run.run_status} />
                     </div>
                     <div className="text-sm text-text-secondary mb-1 truncate">{run.workflow_name}</div>
-                    <div className="text-xs text-text-muted mb-1">{workflowToRepo.get(run.workflow_name) || '—'}</div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
+                      <span className="text-sm text-text-muted font-mono">{run.current_step}</span>
                       <div onClick={e => e.stopPropagation()}>
                         <ActionDropdown run={run} onAction={handleAction} />
                       </div>
@@ -234,14 +252,13 @@ export function RunsPage() {
                 {filteredRuns.map(run => (
                   <div
                     key={run.run_id}
-                    className="grid grid-cols-[140px_120px_1fr_130px_140px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
+                    className="grid grid-cols-[220px_1fr_140px_130px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
                     onClick={() => setSelectedRun(run)}
                   >
-                    <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
-                    <span className="text-xs text-text-muted truncate">{workflowToRepo.get(run.workflow_name) || '—'}</span>
-                    <span className="text-sm text-text-secondary truncate">{run.workflow_name}</span>
+                    <span className="text-base text-text-muted truncate">{pathToRepo.get(run.project_root ?? '') || '—'}</span>
+                    <span className="text-base text-text-secondary truncate">{run.workflow_name}</span>
+                    <span className="text-base text-text-muted font-mono">{run.current_step}</span>
                     <StatusBadge status={run.run_status} />
-                    <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
                     <div className="flex justify-end" onClick={e => e.stopPropagation()}>
                       <ActionDropdown run={run} onAction={handleAction} />
                     </div>
@@ -272,7 +289,7 @@ export function RunsPage() {
               </DetailField>
               <DetailField label="Current Step" value={currentSelectedRun.current_step || '—'} />
               <DetailField label="Workflow" value={currentSelectedRun.workflow_name} />
-              <DetailField label="Repo" value={workflowToRepo.get(currentSelectedRun.workflow_name) || '—'} />
+              <DetailField label="Repo" value={pathToRepo.get(currentSelectedRun.project_root ?? '') || '—'} />
               <DetailField label="Worker" value={currentSelectedRun.worker_id || '—'} />
               <DetailField label="Project Root" value={currentSelectedRun.project_root || '—'} />
               {currentSelectedRun.error_message && (
