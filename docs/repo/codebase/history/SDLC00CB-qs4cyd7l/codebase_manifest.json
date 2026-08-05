@@ -1,0 +1,27 @@
+{
+  "workflow_id": "sdlc_00_codebase_v1",
+  "workflow_layer": "layer3",
+  "platform": "agent-runner-v2",
+  "change_or_run_id": "SDLC00CB-qs4cyd7l",
+  "change_class": "codebase_sync",
+  "artifact_inventory": {
+    "CODEBASE_01_INVENTORY_CODEBASE_INVENTORY": "docs/repo/codebase/current/01_inventory/codebase_inventory.md",
+    "CODEBASE_03_COMPONENTS_ACTIONS-PACKAGE": "docs/repo/codebase/current/03_components/actions-package.md",
+    "CODEBASE_03_COMPONENTS_CODEBASE-GOVERNANCE": "docs/repo/codebase/current/03_components/codebase-governance.md",
+    "CODEBASE_03_COMPONENTS_CONFIG-AND-DATA": "docs/repo/codebase/current/03_components/config-and-data.md",
+    "CODEBASE_03_COMPONENTS_SCRIPTS-SUITE": "docs/repo/codebase/current/03_components/scripts-suite.md",
+    "CODEBASE_03_COMPONENTS_TESTS-SUITE": "docs/repo/codebase/current/03_components/tests-suite.md",
+    "CODEBASE_03_COMPONENTS_WORKFLOW-FAMILIES": "docs/repo/codebase/current/03_components/workflow-families.md",
+    "CODEBASE_04_CHANGES_SDLC00CB-QS4CYD7L-RECONCILE-VALIDATION": "docs/repo/codebase/current/04_changes/SDLC00CB-qs4cyd7l-reconcile-validation.md",
+    "CODEBASE_04_CHANGES_SDLC00CB-QS4CYD7L-RECONCILE": "docs/repo/codebase/current/04_changes/SDLC00CB-qs4cyd7l-reconcile.md"
+  },
+  "artifact_permanence_class": "permanent",
+  "authority": "workflow-generated",
+  "lifecycle_status": "published",
+  "source_step": "publish_codebase_docs",
+  "published_timestamp": "2026-08-04T18:05:38+08:00",
+  "effective_version": "SDLC00CB-qs4cyd7l",
+  "active_set": true,
+  "supersedes": null,
+  "superseded_by": null
+}

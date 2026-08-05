@@ -1,40 +1,145 @@
-import { useState } from 'react';
-import { useActiveRuns, useRequestAction } from '../api/hooks';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useActiveRuns, useRequestAction, useRepos } from '../api/hooks';
+import { useSelectedWorker } from '../components/WorkerContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { RunResponse } from '../api/types';
 
 const actionVariant: Record<string, 'success' | 'danger' | 'warning' | 'primary'> = {
-  Approve: 'success', Reject: 'danger', Cancel: 'danger',
-  Resume: 'warning', Retry: 'primary', Reset: 'primary',
+  APPROVE: 'success', REJECT: 'danger', CANCEL: 'danger', FORCE_CANCEL: 'danger',
+  RESUME: 'warning', RETRY: 'primary', RESET: 'primary',
 };
 
 const actionLabels: Record<string, string> = {
-  Approve: 'Approve', Reject: 'Reject', Cancel: 'Cancel Job',
-  Resume: 'Resume', Retry: 'Retry', Reset: 'Reset Step',
+  APPROVE: 'Approve', REJECT: 'Reject', CANCEL: 'Cancel Job', FORCE_CANCEL: 'Force Cancel',
+  RESUME: 'Resume', RETRY: 'Retry', RESET: 'Reset Step',
 };
 
 const actionMessages: Record<string, string> = {
-  Approve: 'Approve the current step and advance to the next step in the workflow.',
-  Reject: 'Reject the current step. The job will loop back for refinement.',
-  Cancel: 'Stop the job immediately and mark it as FAILED. This cannot be undone.',
-  Resume: 'Force-approve the current step and advance, bypassing the wait condition.',
-  Retry: 'Re-execute the current step from scratch with a fresh attempt.',
-  Reset: 'Reset the current step back to pending status for re-execution.',
+  APPROVE: 'Approve the current step and advance to the next step in the workflow.',
+  REJECT: 'Reject the current step. The job will loop back for refinement.',
+  CANCEL: 'Stop the job gracefully, letting the current step finish.',
+  FORCE_CANCEL: 'Immediately terminate the job and kill any running child processes.',
+  RESUME: 'Force-approve the current step and advance, bypassing the wait condition.',
+  RETRY: 'Re-execute the current step from scratch with a fresh attempt.',
+  RESET: 'Reset the current step back to pending status for re-execution.',
 };
 
+const AWAITING_STATUSES = ['WAITING_FOR_HUMAN_APPROVAL', 'AWAITING_INTERVENTION', 'AWAITING_MAXRETRIED'];
+const USER_ACTION_STATUSES = ['USER_APPROVED', 'USER_REJECTED', 'USER_RESUMED', 'USER_RETRIED'];
+
+function ActionDropdown({ run, onAction }: { run: RunResponse; onAction: (action: string, run: RunResponse) => void }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, left: rect.right - 160 });
+    }
+    setOpen(o => !o);
+  };
+
+  if (run.valid_actions.length === 0) {
+    return (
+      <button
+        disabled
+        className="px-2.5 py-1 rounded text-sm font-medium bg-white/5 text-text-muted/30 border border-border/30 cursor-not-allowed"
+      >
+        Actions ▾
+      </button>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        ref={btnRef}
+        className="px-2.5 py-1 rounded text-sm font-medium bg-white/5 text-text-muted hover:bg-white/10 border border-border"
+        onClick={(e) => { e.stopPropagation(); toggle(); }}
+      >
+        Actions ▾
+      </button>
+      {open && (
+        <div style={{ position: 'fixed', top: pos.top, left: pos.left }} className="w-40 bg-bg-secondary border border-border rounded-lg shadow-xl z-[9999] py-1">
+          {run.valid_actions.map(action => (
+            <button
+              key={action}
+              className={`w-full text-left px-3 py-1.5 text-sm font-medium hover:bg-white/10 ${
+                action === 'CANCEL' ? 'text-red-400' :
+                action === 'APPROVE' ? 'text-green-400' :
+                action === 'REJECT' ? 'text-red-400' :
+                'text-text-secondary'
+              }`}
+              onClick={(e) => { e.stopPropagation(); setOpen(false); onAction(action, run); }}
+            >
+              {actionLabels[action] || action}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RunsPage() {
-  const { data, isLoading } = useActiveRuns();
+  const { selectedWorkerId } = useSelectedWorker();
+  const { data, isLoading } = useActiveRuns(5000, selectedWorkerId);
+  const { data: repos } = useRepos();
   const actionMut = useRequestAction();
   const [selectedRun, setSelectedRun] = useState<RunResponse | null>(null);
   const [confirm, setConfirm] = useState<{ action: string; run: RunResponse } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [workflowFilter, setWorkflowFilter] = useState<string>('all');
 
   const runs = data?.runs ?? [];
+
+  // Build path → repo_name lookup (project_root matches repo.path)
+  const pathToRepo = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const repo of repos ?? []) {
+      if (repo.path) map.set(repo.path, repo.name);
+    }
+    return map;
+  }, [repos]);
   const counts = {
     running: runs.filter(r => r.run_status === 'RUNNING').length,
-    awaiting: runs.filter(r => r.run_status.startsWith('AWAITING')).length,
-    pending: runs.filter(r => r.run_status === 'PENDING' || r.run_status === 'SUBMITTED').length,
+    awaiting: runs.filter(r => AWAITING_STATUSES.includes(r.run_status)).length,
+    userAction: runs.filter(r => USER_ACTION_STATUSES.includes(r.run_status)).length,
+    pending: runs.filter(r => r.run_status === 'PENDING' || r.run_status === 'USER_SUBMITTED').length,
   };
+
+  // Keep selectedRun in sync with refreshed data
+  const currentSelectedRun = selectedRun
+    ? runs.find(r => r.run_id === selectedRun.run_id) || selectedRun
+    : null;
+
+  // Get unique workflow names for filter dropdown
+  const workflows = [...new Set(runs.map(r => r.workflow_name))].sort();
+
+  // Filter runs
+  const filteredRuns = runs.filter(r => {
+    // Status filter
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'running' && r.run_status !== 'RUNNING') return false;
+      if (statusFilter === 'userAction' && !USER_ACTION_STATUSES.includes(r.run_status)) return false;
+      if (statusFilter === 'awaiting' && !AWAITING_STATUSES.includes(r.run_status)) return false;
+      if (statusFilter === 'pending' && r.run_status !== 'PENDING' && r.run_status !== 'USER_SUBMITTED') return false;
+    }
+    // Workflow filter
+    if (workflowFilter !== 'all' && r.workflow_name !== workflowFilter) return false;
+    return true;
+  });
 
   const handleAction = (action: string, run: RunResponse) => {
     setConfirm({ action, run });
@@ -64,95 +169,145 @@ export function RunsPage() {
 
       <div className="flex-1 overflow-y-auto p-6">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard value={counts.running} label="Running" color="text-blue-400" />
-          <StatCard value={counts.awaiting} label="Awaiting Action" color="text-amber-400" />
+          <StatCard value={counts.userAction} label="User Action" color="text-emerald-400" />
+          <StatCard value={counts.awaiting} label="Awaiting Human" color="text-amber-400" />
           <StatCard value={counts.pending} label="Pending" color="text-blue-300" />
         </div>
 
         {/* Run list */}
-        <div className="bg-bg-secondary border border-border rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+        <div className="bg-bg-secondary border border-border rounded-xl">
+          {/* Filter panel */}
+          <div className="px-5 py-3 border-b border-border flex flex-wrap items-center gap-4">
+            <span className="text-xs text-text-muted uppercase tracking-wider">Filters:</span>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-2.5 py-1 rounded text-xs bg-bg-primary border border-border text-text-secondary focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="running">Running</option>
+              <option value="userAction">User Action</option>
+              <option value="awaiting">Awaiting Human</option>
+              <option value="pending">Pending</option>
+            </select>
+            <select
+              value={workflowFilter}
+              onChange={e => setWorkflowFilter(e.target.value)}
+              className="px-2.5 py-1 rounded text-xs bg-bg-primary border border-border text-text-secondary focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All Workflows</option>
+              {workflows.map(w => <option key={w} value={w}>{w}</option>)}
+            </select>
+            {(statusFilter !== 'all' || workflowFilter !== 'all') && (
+              <button
+                onClick={() => { setStatusFilter('all'); setWorkflowFilter('all'); }}
+                className="px-2 py-1 rounded text-xs text-text-muted hover:text-text-primary hover:bg-white/5"
+              >
+                Clear
+              </button>
+            )}
+            <span className="ml-auto text-xs text-text-muted">{filteredRuns.length} of {runs.length} runs</span>
+          </div>
           <div className="px-5 py-3.5 border-b border-border flex justify-between items-center">
             <h3 className="text-sm font-semibold">Active Runs</h3>
             <span className="text-xs text-text-muted">{runs.length} runs</span>
           </div>
           {isLoading ? (
             <div className="p-8 text-center text-text-muted">Loading...</div>
-          ) : runs.length === 0 ? (
-            <div className="p-8 text-center text-text-muted">No active runs</div>
+          ) : filteredRuns.length === 0 ? (
+            <div className="p-8 text-center text-text-muted">
+              {runs.length === 0 ? 'No active runs' : 'No runs match the current filters'}
+            </div>
           ) : (
-            runs.map(run => (
-              <div
-                key={run.run_id}
-                className="grid grid-cols-[140px_1fr_130px_140px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
-                onClick={() => setSelectedRun(run)}
-              >
-                <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
-                <span className="text-sm text-text-secondary">{run.workflow_name}</span>
-                <StatusBadge status={run.run_status} />
-                <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
-                <div className="flex gap-1 justify-end" onClick={e => e.stopPropagation()}>
-                  {run.valid_actions.map(action => (
-                    <button
-                      key={action}
-                      className={`px-2.5 py-1 rounded text-xs font-medium ${
-                        action === 'Cancel' ? 'bg-danger/20 text-red-400 hover:bg-danger/30' :
-                        action === 'Approve' ? 'bg-success/20 text-green-400 hover:bg-success/30' :
-                        action === 'Reject' ? 'bg-danger/20 text-red-400 hover:bg-danger/30' :
-                        'bg-white/5 text-text-muted hover:bg-white/10'
-                      }`}
-                      onClick={() => handleAction(action, run)}
-                    >
-                      {actionLabels[action] || action}
-                    </button>
-                  ))}
-                </div>
+            <>
+              {/* Mobile card layout */}
+              <div className="md:hidden divide-y divide-bg-primary">
+                {filteredRuns.map(run => (
+                  <div
+                    key={run.run_id}
+                    className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
+                    onClick={() => setSelectedRun(run)}
+                  >
+                    <div className="text-sm text-text-muted mb-0.5 truncate">{pathToRepo.get(run.project_root ?? '') || '—'}</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
+                      <StatusBadge status={run.run_status} />
+                    </div>
+                    <div className="text-sm text-text-secondary mb-1 truncate">{run.workflow_name}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-text-muted font-mono">{run.current_step}</span>
+                      <div onClick={e => e.stopPropagation()}>
+                        <ActionDropdown run={run} onAction={handleAction} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))
+
+              {/* Desktop grid layout */}
+              <div className="hidden md:block">
+                {filteredRuns.map(run => (
+                  <div
+                    key={run.run_id}
+                    className="grid grid-cols-[220px_1fr_140px_130px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
+                    onClick={() => setSelectedRun(run)}
+                  >
+                    <span className="text-base text-text-muted truncate">{pathToRepo.get(run.project_root ?? '') || '—'}</span>
+                    <span className="text-base text-text-secondary truncate">{run.workflow_name}</span>
+                    <span className="text-base text-text-muted font-mono">{run.current_step}</span>
+                    <StatusBadge status={run.run_status} />
+                    <div className="flex justify-end" onClick={e => e.stopPropagation()}>
+                      <ActionDropdown run={run} onAction={handleAction} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
+        </div>
         </div>
       </div>
 
       {/* Detail panel */}
-      {selectedRun && (
-        <div className="fixed top-0 right-0 w-[480px] h-screen bg-bg-secondary border-l border-border shadow-2xl flex flex-col z-40">
+      {currentSelectedRun && (
+        <div className="fixed top-0 right-0 w-full sm:w-[480px] h-screen bg-bg-secondary border-l border-border shadow-2xl flex flex-col z-40">
           <div className="p-5 border-b border-border flex justify-between items-start">
             <div>
               <div className="text-xs text-text-muted mb-1">Run Detail</div>
-              <h3 className="font-mono text-lg">{selectedRun.run_code}</h3>
+              <h3 className="font-mono text-lg">{currentSelectedRun.run_code}</h3>
             </div>
             <button className="px-2 py-1 rounded border border-border text-text-muted hover:text-text-primary" onClick={() => setSelectedRun(null)}>✕</button>
           </div>
           <div className="flex-1 overflow-y-auto p-5">
             <DetailSection title="State">
-              <DetailField label="Status"><StatusBadge status={selectedRun.run_status} /></DetailField>
+              <DetailField label="Status"><StatusBadge status={currentSelectedRun.run_status} /></DetailField>
               <DetailField label="Action Requested">
-                <span className="font-mono text-text-secondary">{selectedRun.action_requested || '—'}</span>
+                <span className="font-mono text-text-secondary">{currentSelectedRun.action_requested || '—'}</span>
               </DetailField>
-              <DetailField label="Current Step" value={selectedRun.current_step || '—'} />
-              <DetailField label="Workflow" value={selectedRun.workflow_name} />
-              <DetailField label="Worker" value={selectedRun.worker_id || '—'} />
+              <DetailField label="Current Step" value={currentSelectedRun.current_step || '—'} />
+              <DetailField label="Workflow" value={currentSelectedRun.workflow_name} />
+              <DetailField label="Repo" value={pathToRepo.get(currentSelectedRun.project_root ?? '') || '—'} />
+              <DetailField label="Worker" value={currentSelectedRun.worker_id || '—'} />
+              <DetailField label="Project Root" value={currentSelectedRun.project_root || '—'} />
+              {currentSelectedRun.error_message && (
+                <DetailField label="Error">
+                  <span className="text-red-400 text-xs">{currentSelectedRun.error_message}</span>
+                </DetailField>
+              )}
             </DetailSection>
             <DetailSection title="Timing">
-              <DetailField label="Created" value={toLocalTime(selectedRun.created_at)} />
-              <DetailField label="Updated" value={toLocalTime(selectedRun.updated_at)} />
+              <DetailField label="Submitted" value={currentSelectedRun.submitted_at ? toLocalTime(currentSelectedRun.submitted_at) : '—'} />
+              <DetailField label="Started" value={currentSelectedRun.started_at ? toLocalTime(currentSelectedRun.started_at) : '—'} />
+              <DetailField label="Completed" value={currentSelectedRun.completed_at ? toLocalTime(currentSelectedRun.completed_at) : '—'} />
+              <DetailField label="Created" value={toLocalTime(currentSelectedRun.created_at)} />
+              <DetailField label="Updated" value={toLocalTime(currentSelectedRun.updated_at)} />
             </DetailSection>
           </div>
-          <div className="p-4 border-t border-border flex gap-2 flex-wrap">
-            {selectedRun.valid_actions.map(action => (
-              <button
-                key={action}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${
-                  action === 'Approve' ? 'bg-success text-white hover:bg-green-600' :
-                  action === 'Reject' || action === 'Cancel' ? 'bg-danger text-white hover:bg-red-600' :
-                  action === 'Resume' ? 'bg-warning text-black hover:bg-amber-600' :
-                  'border border-border text-text-muted hover:text-text-primary'
-                }`}
-                onClick={() => handleAction(action, selectedRun)}
-              >
-                {actionLabels[action] || action}
-              </button>
-            ))}
+          <div className="p-4 border-t border-border">
+            <ActionDropdown run={currentSelectedRun} onAction={handleAction} />
           </div>
         </div>
       )}
@@ -165,7 +320,7 @@ export function RunsPage() {
         confirmLabel={actionLabels[confirm?.action || ''] || confirm?.action || 'Confirm'}
         confirmVariant={actionVariant[confirm?.action || ''] || 'primary'}
         cancelLabel="Go Back"
-        showFeedback={['Approve', 'Reject', 'Resume', 'Retry'].includes(confirm?.action || '')}
+        showFeedback={['APPROVE', 'REJECT', 'RESUME', 'RETRY'].includes(confirm?.action || '')}
         onConfirm={doAction}
         onCancel={() => setConfirm(null)}
       />
@@ -201,7 +356,6 @@ function DetailField({ label, value, children }: { label: string; value?: string
 }
 
 function toLocalTime(iso: string): string {
-  // Backend returns naive UTC datetimes — append 'Z' to parse as UTC
   const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z');
   return d.toLocaleString();
 }

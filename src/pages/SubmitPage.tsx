@@ -1,17 +1,29 @@
-import { useState } from 'react';
-import { useRepos, useWorkflows, useSubmitRun } from '../api/hooks';
+import { useState, useEffect } from 'react';
+import { useRepos, useWorkflows, useWorkers, useSubmitRun } from '../api/hooks';
+import { useSelectedWorker } from '../components/WorkerContext';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function SubmitPage() {
+  const { selectedWorkerId: globalWorkerId } = useSelectedWorker();
   const { data: repos } = useRepos();
   const { data: allWorkflows } = useWorkflows();
+  const { data: workers } = useWorkers();
   const submitMut = useSubmitRun();
+  const [workerId, setWorkerId] = useState('');
   const [repoId, setRepoId] = useState('');
   const [workflow, setWorkflow] = useState('');
   const [startStep, setStartStep] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const repoList = repos ?? [];
+  // Sync with sidebar worker selection
+  useEffect(() => {
+    setWorkerId(globalWorkerId ?? '');
+    setRepoId('');
+    setWorkflow('');
+  }, [globalWorkerId]);
+
+  const workerList = workers ?? [];
+  const repoList = (repos ?? []).filter(r => !workerId || r.worker_id === workerId);
   const selectedRepo = repoList.find(r => r.id === repoId);
 
   // Filter workflows to repo's assignments, or show all if no repo selected
@@ -30,7 +42,7 @@ export function SubmitPage() {
       {
         workflow_name: workflow,
         project_root: selectedRepo?.path || undefined,
-        worker_id: selectedRepo?.worker_id || undefined,
+        worker_id: selectedRepo?.worker_id || workerId || undefined,
         start_step: startStep || undefined,
       },
       {
@@ -50,11 +62,27 @@ export function SubmitPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="bg-bg-secondary border border-border rounded-xl max-w-xl">
+        <div className="bg-bg-secondary border border-border rounded-xl max-w-xl w-full">
           <div className="px-5 py-3.5 border-b border-border">
             <h3 className="text-sm font-semibold">New Workflow Run</h3>
           </div>
           <div className="p-5">
+            <div className="mb-4">
+              <label className="block text-sm text-text-secondary mb-1.5 font-medium">Worker</label>
+              <select
+                className="w-full bg-bg-input border border-border rounded-md px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                value={workerId}
+                onChange={e => { setWorkerId(e.target.value); setRepoId(''); setWorkflow(''); }}
+              >
+                <option value="">Any worker</option>
+                {workerList.map(w => (
+                  <option key={w.worker_id} value={w.worker_id}>
+                    {w.worker_id} ({w.worker_label})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="mb-4">
               <label className="block text-sm text-text-secondary mb-1.5 font-medium">Repo</label>
               <select

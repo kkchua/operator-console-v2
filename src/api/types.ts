@@ -1,12 +1,27 @@
 export interface RunResponse {
   run_id: string;
   run_code: string;
+  workflow_definition_id: string;
   workflow_name: string;
   run_status: string;
   action_requested: string | null;
+  action_feedback: string | null;
+  cancel_requested: string | null;
   current_step: string | null;
   current_step_run_id: string | null;
+  target_worker_id: string | null;
   worker_id: string | null;
+  worker_label: string | null;
+  project_root: string | null;
+  workspace_path: string | null;
+  job_dir: string | null;
+  input_payload: Record<string, string> | null;
+  context_payload: Record<string, unknown> | null;
+  error_message: string | null;
+  refine_iterations: Record<string, number> | null;
+  submitted_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
   created_at: string;
   updated_at: string;
   valid_actions: string[];
@@ -14,6 +29,7 @@ export interface RunResponse {
 
 export interface RunListResponse {
   runs: RunResponse[];
+  total: number;
 }
 
 export interface WorkerResponse {
@@ -22,6 +38,8 @@ export interface WorkerResponse {
   hostname: string | null;
   status: string;
   worker_label: string;
+  is_enabled: boolean;
+  capabilities: Record<string, unknown>;
   last_heartbeat: string | null;
   current_run_id: string | null;
 }
@@ -112,4 +130,21 @@ export interface UpdateRepoRequest {
 export interface AssignWorkflowRequest {
   workflow_name: string;
   display_name?: string;
+}
+
+// Auth
+export interface UserInfoResponse {
+  user_id: string;
+  email: string;
+  role: string;
+  is_service_account: boolean;
+}
+
+export interface NavigationItem {
+  id: string;
+  label: string;
+  icon: string;
+  path: string;
+  required_roles: string[];
+  children?: NavigationItem[];
 }

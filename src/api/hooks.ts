@@ -1,19 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from './client';
-import type { SubmitRunRequest, ActionRequest, CreateRepoRequest, AssignWorkflowRequest, CreateHostRequest } from './types';
+import type { SubmitRunRequest, ActionRequest, CreateRepoRequest, AssignWorkflowRequest, CreateHostRequest, RepoResponse } from './types';
 
-export function useActiveRuns(refreshInterval = 5000) {
+export function useActiveRuns(refreshInterval = 5000, workerId?: string | null) {
   return useQuery({
-    queryKey: ['runs', 'active'],
-    queryFn: () => api.listRuns('active'),
+    queryKey: ['runs', 'active', workerId ?? ''],
+    queryFn: () => api.listRuns('active', workerId ?? undefined),
     refetchInterval: refreshInterval,
   });
 }
 
-export function useAllRuns(refreshInterval = 10000) {
+export function useAllRuns(refreshInterval = 10000, workerId?: string | null, limit = 100, offset = 0) {
   return useQuery({
-    queryKey: ['runs', 'all'],
-    queryFn: api.listAllRuns,
+    queryKey: ['runs', 'all', workerId ?? '', limit, offset],
+    queryFn: () => api.listAllRuns(workerId ?? undefined, limit, offset),
     refetchInterval: refreshInterval,
   });
 }
@@ -84,6 +84,38 @@ export function useStopWorker() {
   });
 }
 
+export function useRegisterWorker() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { worker_id: string; worker_label?: string; host_id?: string }) =>
+      api.registerWorker(data.worker_id, data.worker_label ?? 'live'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workers'] });
+    },
+  });
+}
+
+export function useUpdateWorker() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ workerId, data }: { workerId: string; data: Parameters<typeof api.updateWorker>[1] }) =>
+      api.updateWorker(workerId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workers'] });
+    },
+  });
+}
+
+export function useDeleteWorker() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (workerId: string) => api.deleteWorker(workerId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workers'] });
+    },
+  });
+}
+
 // Hosts
 export function useHosts() {
   return useQuery({
@@ -96,6 +128,29 @@ export function useCreateHost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateHostRequest) => api.createHost(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hosts'] });
+      qc.invalidateQueries({ queryKey: ['workers'] });
+    },
+  });
+}
+
+export function useDeleteHost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (hostId: string) => api.deleteHost(hostId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hosts'] });
+      qc.invalidateQueries({ queryKey: ['workers'] });
+    },
+  });
+}
+
+export function useUpdateHost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ hostId, data }: { hostId: string; data: Parameters<typeof api.updateHost>[1] }) =>
+      api.updateHost(hostId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['hosts'] });
       qc.invalidateQueries({ queryKey: ['workers'] });
@@ -121,6 +176,21 @@ export function useCreateRepo() {
   });
 }
 
+export function useUpdateRepo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ repoId, data }: { repoId: string; data: Parameters<typeof api.updateRepo>[1] }) =>
+      api.updateRepo(repoId, data),
+    onSuccess: (updated) => {
+      qc.setQueryData<RepoResponse[]>(['repos'], old => {
+        if (!old) return old;
+        return old.map(r => r.id !== updated.id ? r : { ...r, ...updated });
+      });
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['repos'] }), 2000);
+    },
+  });
+}
+
 export function useDeleteRepo() {
   const qc = useQueryClient();
   return useMutation({
@@ -136,8 +206,12 @@ export function useAssignWorkflow() {
   return useMutation({
     mutationFn: ({ repoId, data }: { repoId: string; data: AssignWorkflowRequest }) =>
       api.assignWorkflow(repoId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['repos'] });
+    onSuccess: (newWf, { repoId }) => {
+      qc.setQueryData<RepoResponse[]>(['repos'], old => {
+        if (!old) return old;
+        return old.map(r => r.id !== repoId ? r : { ...r, workflows: [...r.workflows, newWf] });
+      });
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['repos'] }), 2000);
     },
   });
 }
@@ -147,8 +221,20 @@ export function useUnassignWorkflow() {
   return useMutation({
     mutationFn: ({ repoId, workflowName }: { repoId: string; workflowName: string }) =>
       api.unassignWorkflow(repoId, workflowName),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['repos'] });
+    onSuccess: (_data, { repoId, workflowName }) => {
+      qc.setQueryData<RepoResponse[]>(['repos'], old => {
+        if (!old) return old;
+        return old.map(r => r.id !== repoId ? r : { ...r, workflows: r.workflows.filter(w => w.workflow_name !== workflowName) });
+      });
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['repos'] }), 2000);
     },
+  });
+}
+
+// Auth
+export function useNavigation() {
+  return useQuery({
+    queryKey: ['navigation'],
+    queryFn: () => api.getNavigation(),
   });
 }
