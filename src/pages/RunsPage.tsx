@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { useActiveRuns, useRequestAction } from '../api/hooks';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useActiveRuns, useRequestAction, useRepos } from '../api/hooks';
 import { useSelectedWorker } from '../components/WorkerContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -75,6 +75,7 @@ function ActionDropdown({ run, onAction }: { run: RunResponse; onAction: (action
 export function RunsPage() {
   const { selectedWorkerId } = useSelectedWorker();
   const { data, isLoading } = useActiveRuns(5000, selectedWorkerId);
+  const { data: repos } = useRepos();
   const actionMut = useRequestAction();
   const [selectedRun, setSelectedRun] = useState<RunResponse | null>(null);
   const [confirm, setConfirm] = useState<{ action: string; run: RunResponse } | null>(null);
@@ -82,6 +83,17 @@ export function RunsPage() {
   const [workflowFilter, setWorkflowFilter] = useState<string>('all');
 
   const runs = data?.runs ?? [];
+
+  // Build workflow_name → repo_name lookup
+  const workflowToRepo = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const repo of repos ?? []) {
+      for (const wf of repo.workflows) {
+        map.set(wf.workflow_name, repo.name);
+      }
+    }
+    return map;
+  }, [repos]);
   const counts = {
     running: runs.filter(r => r.run_status === 'RUNNING').length,
     awaiting: runs.filter(r => AWAITING_STATUSES.includes(r.run_status)).length,
@@ -206,6 +218,7 @@ export function RunsPage() {
                       <StatusBadge status={run.run_status} />
                     </div>
                     <div className="text-sm text-text-secondary mb-1 truncate">{run.workflow_name}</div>
+                    <div className="text-xs text-text-muted mb-1">{workflowToRepo.get(run.workflow_name) || '—'}</div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
                       <div onClick={e => e.stopPropagation()}>
@@ -221,11 +234,12 @@ export function RunsPage() {
                 {filteredRuns.map(run => (
                   <div
                     key={run.run_id}
-                    className="grid grid-cols-[140px_1fr_130px_140px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
+                    className="grid grid-cols-[140px_120px_1fr_130px_140px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
                     onClick={() => setSelectedRun(run)}
                   >
                     <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
-                    <span className="text-sm text-text-secondary">{run.workflow_name}</span>
+                    <span className="text-xs text-text-muted truncate">{workflowToRepo.get(run.workflow_name) || '—'}</span>
+                    <span className="text-sm text-text-secondary truncate">{run.workflow_name}</span>
                     <StatusBadge status={run.run_status} />
                     <span className="text-xs text-text-muted font-mono">{run.current_step}</span>
                     <div className="flex justify-end" onClick={e => e.stopPropagation()}>
@@ -258,9 +272,19 @@ export function RunsPage() {
               </DetailField>
               <DetailField label="Current Step" value={currentSelectedRun.current_step || '—'} />
               <DetailField label="Workflow" value={currentSelectedRun.workflow_name} />
+              <DetailField label="Repo" value={workflowToRepo.get(currentSelectedRun.workflow_name) || '—'} />
               <DetailField label="Worker" value={currentSelectedRun.worker_id || '—'} />
+              <DetailField label="Project Root" value={currentSelectedRun.project_root || '—'} />
+              {currentSelectedRun.error_message && (
+                <DetailField label="Error">
+                  <span className="text-red-400 text-xs">{currentSelectedRun.error_message}</span>
+                </DetailField>
+              )}
             </DetailSection>
             <DetailSection title="Timing">
+              <DetailField label="Submitted" value={currentSelectedRun.submitted_at ? toLocalTime(currentSelectedRun.submitted_at) : '—'} />
+              <DetailField label="Started" value={currentSelectedRun.started_at ? toLocalTime(currentSelectedRun.started_at) : '—'} />
+              <DetailField label="Completed" value={currentSelectedRun.completed_at ? toLocalTime(currentSelectedRun.completed_at) : '—'} />
               <DetailField label="Created" value={toLocalTime(currentSelectedRun.created_at)} />
               <DetailField label="Updated" value={toLocalTime(currentSelectedRun.updated_at)} />
             </DetailSection>

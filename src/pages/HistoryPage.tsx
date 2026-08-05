@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useAllRuns } from '../api/hooks';
+import { useState, useEffect, useMemo } from 'react';
+import { useAllRuns, useRepos } from '../api/hooks';
 import { useSelectedWorker } from '../components/WorkerContext';
 import { StatusBadge } from '../components/StatusBadge';
 import type { RunResponse } from '../api/types';
@@ -20,6 +20,7 @@ export function HistoryPage() {
   const [filter, setFilter] = useState('');
   const offset = page * PAGE_SIZE;
   const { data, isLoading } = useAllRuns(10000, selectedWorkerId, PAGE_SIZE, offset);
+  const { data: repos } = useRepos();
 
   // Reset page when worker changes
   useEffect(() => { setPage(0); }, [selectedWorkerId]);
@@ -27,6 +28,17 @@ export function HistoryPage() {
   const runs = data?.runs ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Build workflow_name → repo_name lookup
+  const workflowToRepo = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const repo of repos ?? []) {
+      for (const wf of repo.workflows) {
+        map.set(wf.workflow_name, repo.name);
+      }
+    }
+    return map;
+  }, [repos]);
 
   const filtered = filter
     ? runs.filter(r => filter === 'AWAITING' ? r.run_status.startsWith('AWAITING') : r.run_status === filter)
@@ -80,6 +92,7 @@ export function HistoryPage() {
                       <StatusBadge status={run.run_status} />
                     </div>
                     <div className="text-sm text-text-secondary truncate">{run.workflow_name}</div>
+                    <div className="text-xs text-text-muted mb-1">{workflowToRepo.get(run.workflow_name) || '—'}</div>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-muted">
                       <span className="font-mono">{run.current_step || '—'}</span>
                       <span>{run.worker_id || '—'}</span>
@@ -92,7 +105,7 @@ export function HistoryPage() {
               {/* Desktop grid layout */}
               <div className="hidden md:block">
                 {filtered.map(run => (
-                  <RunRow key={run.run_id} run={run} />
+                  <RunRow key={run.run_id} run={run} repoName={workflowToRepo.get(run.workflow_name) || '—'} />
                 ))}
               </div>
             </>
@@ -124,11 +137,12 @@ export function HistoryPage() {
   );
 }
 
-function RunRow({ run }: { run: RunResponse }) {
+function RunRow({ run, repoName }: { run: RunResponse; repoName: string }) {
   return (
-    <div className="grid grid-cols-[140px_1fr_130px_140px_100px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3">
+    <div className="grid grid-cols-[140px_120px_1fr_130px_140px_100px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3">
       <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
-      <span className="text-sm text-text-secondary">{run.workflow_name}</span>
+      <span className="text-xs text-text-muted truncate">{repoName}</span>
+      <span className="text-sm text-text-secondary truncate">{run.workflow_name}</span>
       <StatusBadge status={run.run_status} />
       <span className="text-xs text-text-muted font-mono">{run.current_step || '—'}</span>
       <span className="text-xs text-text-muted">{run.worker_id || '—'}</span>
