@@ -51,6 +51,8 @@ export interface WorkflowResponse {
   is_active: boolean;
   step_count: number;
   steps: string[];
+  init_input_keys?: string[];
+  implementations?: Array<{ name: string; description: string; label: string }>;
 }
 
 export interface SubmitRunRequest {
@@ -147,4 +149,22 @@ export interface NavigationItem {
   path: string;
   required_roles: string[];
   children?: NavigationItem[];
+}
+
+// User roles
+export interface UserRoleResponse {
+  user_id: string;
+  email: string;
+  role: string;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateUserRoleRequest {
+  role: string;
+}
+
+export interface SetUserWorkersRequest {
+  worker_ids: string[];
 }
