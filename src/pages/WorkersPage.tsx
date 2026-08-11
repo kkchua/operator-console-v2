@@ -72,7 +72,7 @@ export function WorkersPage() {
         ) : list.length === 0 ? (
           <div className="text-text-muted text-center py-12">No workers registered</div>
         ) : (
-          <div className="bg-bg-secondary border border-border rounded-xl">
+          <div>
             {/* Desktop header */}
             <div className="hidden md:grid grid-cols-[1.2fr_0.8fr_0.6fr_0.7fr_0.5fr_0.8fr_1fr_140px] gap-3 px-5 py-2.5 border-b border-border text-xs text-text-muted uppercase tracking-wider">
               <span>Worker ID</span>
@@ -86,9 +86,9 @@ export function WorkersPage() {
             </div>
 
             {/* Mobile card layout */}
-            <div className="md:hidden divide-y divide-bg-primary">
+            <div className="md:hidden space-y-2">
               {list.map(w => (
-                <div key={w.worker_id} className="p-4 space-y-2">
+                <div key={w.worker_id} className="p-4 space-y-2 bg-bg-secondary border border-border rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-text-primary">{w.worker_id}</span>
                     <StatusBadge status={w.status.toUpperCase()} />
@@ -127,11 +127,11 @@ export function WorkersPage() {
             </div>
 
             {/* Desktop grid rows */}
-            <div className="hidden md:block">
+            <div className="hidden md:block space-y-1.5">
               {list.map(w => (
                 <div
                   key={w.worker_id}
-                  className="grid grid-cols-[1.2fr_0.8fr_0.6fr_0.7fr_0.5fr_0.8fr_1fr_140px] gap-3 items-center px-5 py-3 border-b border-bg-primary last:border-0"
+                  className="grid grid-cols-[1.2fr_0.8fr_0.6fr_0.7fr_0.5fr_0.8fr_1fr_140px] gap-3 items-center px-5 py-3 bg-bg-secondary border border-border rounded-lg"
                 >
                   <span className="text-sm font-medium text-text-primary truncate">{w.worker_id}</span>
                   <span className="text-xs text-text-muted truncate">{w.hostname || '—'}</span>

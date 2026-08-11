@@ -178,7 +178,7 @@ export function RunsPage() {
 
         {/* Run list */}
         <div className="overflow-x-auto">
-        <div className="bg-bg-secondary border border-border rounded-xl">
+        <div>
           {/* Filter panel */}
           <div className="px-5 py-3 border-b border-border flex flex-wrap items-center gap-4">
             <span className="text-xs text-text-muted uppercase tracking-wider">Filters:</span>
@@ -224,11 +224,11 @@ export function RunsPage() {
           ) : (
             <>
               {/* Mobile card layout */}
-              <div className="md:hidden divide-y divide-bg-primary">
+              <div className="md:hidden space-y-2">
                 {filteredRuns.map(run => (
                   <div
                     key={run.run_id}
-                    className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
+                    className="p-4 cursor-pointer hover:bg-white/5 transition-colors bg-bg-secondary border border-border rounded-lg"
                     onClick={() => setSelectedRun(run)}
                   >
                     <div className="text-sm text-text-muted mb-0.5 truncate">{pathToRepo.get(run.project_root ?? '') || '—'}</div>
@@ -248,11 +248,11 @@ export function RunsPage() {
               </div>
 
               {/* Desktop grid layout */}
-              <div className="hidden md:block">
+              <div className="hidden md:block space-y-1.5">
                 {filteredRuns.map(run => (
                   <div
                     key={run.run_id}
-                    className="grid grid-cols-[220px_1fr_140px_130px_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 hover:bg-white/5 cursor-pointer gap-3 transition-colors"
+                    className="grid grid-cols-[220px_1fr_140px_130px_auto] items-center px-5 py-3 bg-bg-secondary border border-border rounded-lg hover:bg-white/5 cursor-pointer gap-3 transition-colors"
                     onClick={() => setSelectedRun(run)}
                   >
                     <span className="text-base text-text-muted truncate">{pathToRepo.get(run.project_root ?? '') || '—'}</span>

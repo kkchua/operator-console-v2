@@ -353,6 +353,68 @@ describe('unassignWorkflow', () => {
   });
 });
 
+// ── User roles ────────────────────────────────────────
+
+describe('listUsers', () => {
+  it('fetches GET /auth/users', async () => {
+    const data = [{ user_id: 'u1', email: 'a@test.com', role: 'admin' }];
+    mockFetch.mockReturnValue(mockOk(data));
+    const result = await api.listUsers();
+    expect(mockFetch).toHaveBeenCalledWith('/api/auth/users', { method: 'GET', headers: {}, body: undefined });
+    expect(result).toEqual(data);
+  });
+});
+
+describe('updateUserRole', () => {
+  it('puts role update', async () => {
+    const data = { role: 'operator' };
+    mockFetch.mockReturnValue(mockOk({ user_id: 'u1', role: 'operator' }));
+    await api.updateUserRole('u1', data);
+    expect(mockFetch).toHaveBeenCalledWith('/api/auth/users/u1/role', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  });
+});
+
+describe('removeUser', () => {
+  it('deletes user by id', async () => {
+    mockFetch.mockReturnValue(mockOk({}));
+    await api.removeUser('u1');
+    expect(mockFetch).toHaveBeenCalledWith('/api/auth/users/u1', {
+      method: 'DELETE',
+      headers: {},
+      body: undefined,
+    });
+  });
+});
+
+// ── User-Worker assignments ─────────────────────────
+
+describe('getUserWorkers', () => {
+  it('fetches GET /auth/users/:id/workers', async () => {
+    const data = ['w1', 'w2'];
+    mockFetch.mockReturnValue(mockOk(data));
+    const result = await api.getUserWorkers('u1');
+    expect(mockFetch).toHaveBeenCalledWith('/api/auth/users/u1/workers', { method: 'GET', headers: {}, body: undefined });
+    expect(result).toEqual(data);
+  });
+});
+
+describe('setUserWorkers', () => {
+  it('puts worker assignment list', async () => {
+    const data = { worker_ids: ['w1', 'w3'] };
+    mockFetch.mockReturnValue(mockOk({ user_id: 'u1', worker_ids: ['w1', 'w3'] }));
+    await api.setUserWorkers('u1', data);
+    expect(mockFetch).toHaveBeenCalledWith('/api/auth/users/u1/workers', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  });
+});
+
 // ── Error handling ────────────────────────────────────
 
 describe('error handling', () => {
