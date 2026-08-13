@@ -18,6 +18,7 @@ export function SubmitPage() {
   const [workflow, setWorkflow] = useState('');
   const [startStep, setStartStep] = useState('');
   const [selectedImpl, setSelectedImpl] = useState('');
+  const [promptSelections, setPromptSelections] = useState<Record<string, string>>({});
   const [showConfirm, setShowConfirm] = useState(false);
   const [fileInputs, setFileInputs] = useState<Record<string, File>>({});
   const [textInputs, setTextInputs] = useState<Record<string, string>>({});
@@ -37,7 +38,13 @@ export function SubmitPage() {
     setFileInputs({});
     setTextInputs({});
     setSelectedImpl('');
+    setPromptSelections({});
   }, [workflow]);
+
+  // Reset prompt selections when implementation changes
+  useEffect(() => {
+    setPromptSelections({});
+  }, [selectedImpl]);
 
   const workerList = workers ?? [];
   const repoList = (repos ?? []).filter(r => !workerId || r.worker_id === workerId);
@@ -57,11 +64,17 @@ export function SubmitPage() {
   const selectedWorkflowInitInputKeys = selectedWorkflowData?.init_input_keys ?? [];
   
   // Extract available implementations from workflow API response
-  // Always include "default" (implicit — workflow.toml itself) + declared alternatives
-  const allImplementations = (() => {
-    const alts = selectedWorkflowData?.implementations ?? [];
-    return [{ name: 'default', description: 'Default implementation (workflow.toml)', label: 'Default' }, ...alts];
-  })();
+  // BCS: If named implementations exist, hide "Default" to avoid confusion.
+  // If no implementations exist, show "Base (workflow.toml)".
+  const availableImpls = selectedWorkflowData?.implementations ?? [];
+  const allImplementations = availableImpls.length > 0 
+    ? availableImpls
+    : [{ name: 'default', description: 'Uses default workflow.toml settings', label: 'Base (workflow.toml)' }];
+
+  // Get the selected implementation object
+  const selectedImplObj = allImplementations.find(i => i.name === selectedImpl);
+  const promptSlots = selectedImplObj?.prompt_slots ?? {};
+  const promptSlotKeys = Object.keys(promptSlots);
 
   const doSubmit = () => {
     // Build input_payload from dynamic inputs
@@ -76,10 +89,9 @@ export function SubmitPage() {
       }
     }
     
-    // Add selected implementation if available
-    if (selectedImpl) {
-      inputPayload['IMPL_NAME'] = selectedImpl;
-    }
+    // Build BCS payload
+    const implName = selectedImpl && selectedImpl !== 'default' ? selectedImpl : undefined;
+    const pSelections = Object.keys(promptSelections).length > 0 ? promptSelections : undefined;
 
     submitMut.mutate(
       {
@@ -88,6 +100,8 @@ export function SubmitPage() {
         worker_id: selectedRepo?.worker_id || workerId || undefined,
         start_step: startStep || undefined,
         input_payload: Object.keys(inputPayload).length > 0 ? inputPayload : undefined,
+        implementation_name: implName,
+        prompt_selections: pSelections,
       },
       {
         onSettled: () => {
@@ -95,6 +109,7 @@ export function SubmitPage() {
           setWorkflow('');
           setStartStep('');
           setSelectedImpl('');
+          setPromptSelections({});
           setFileInputs({});
           setTextInputs({});
         },
@@ -187,7 +202,7 @@ export function SubmitPage() {
               </select>
             </div>
 
-            {allImplementations.length > 1 && (
+            {allImplementations.length > 0 && (
               <div className="mb-4">
                 <label className="block text-sm text-text-secondary mb-1.5 font-medium">Implementation</label>
                 <select
@@ -204,6 +219,36 @@ export function SubmitPage() {
                 <div className="mt-1 text-xs text-text-muted">
                   {allImplementations.length} implementation{allImplementations.length !== 1 ? 's' : ''} available
                 </div>
+              </div>
+            )}
+
+            {promptSlotKeys.length > 0 && (
+              <div className="mb-4 p-4 bg-bg-input border border-border rounded-lg">
+                <h4 className="text-sm font-semibold text-text-secondary mb-3">Prompt Variations</h4>
+                {promptSlotKeys.map(slotId => {
+                  const slot = promptSlots[slotId];
+                  const defaultValue = slot.default ?? (slot.options[0]?.name ?? '');
+                  const currentValue = promptSelections[slotId] ?? defaultValue;
+                  return (
+                    <div key={slotId} className="mb-3 last:mb-0">
+                      <label className="block text-sm text-text-secondary mb-1.5 font-medium">{slot.label}</label>
+                      <select
+                        className="w-full bg-bg-input border border-border rounded-md px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                        value={currentValue}
+                        onChange={e => setPromptSelections(prev => ({ ...prev, [slotId]: e.target.value }))}
+                      >
+                        {slot.options.map(opt => (
+                          <option key={opt.name} value={opt.name}>{opt.name}</option>
+                        ))}
+                      </select>
+                      {slot.options.find(o => o.name === currentValue)?.description && (
+                        <div className="mt-1 text-xs text-text-muted">
+                          {slot.options.find(o => o.name === currentValue)?.description}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -271,7 +316,7 @@ export function SubmitPage() {
       <ConfirmDialog
         open={showConfirm}
         title="Confirm: Submit"
-        message={`Submit job for workflow "${workflow}"?${selectedRepo ? ` Repo: ${selectedRepo.name} (${selectedRepo.path})` : ''}${selectedImpl ? `\nImplementation: ${selectedImpl}` : ''}${selectedWorkflowInitInputKeys.length > 0 ? `\n\nInputs: ${selectedWorkflowInitInputKeys.map(k => isFileInput(k) ? `${k}=${fileInputs[k]?.name ?? '(none)'}` : `${k}=${textInputs[k]?.trim() || '(none)'}`).join(', ')}` : ''}`}
+        message={`Submit job for workflow "${workflow}"?${selectedRepo ? ` Repo: ${selectedRepo.name} (${selectedRepo.path})` : ''}${selectedImpl ? `\nImplementation: ${selectedImpl}` : ''}${Object.keys(promptSelections).length > 0 ? `\nPrompts: ${Object.entries(promptSelections).map(([k, v]) => `${k}=${v}`).join(', ')}` : ''}${selectedWorkflowInitInputKeys.length > 0 ? `\n\nInputs: ${selectedWorkflowInitInputKeys.map(k => isFileInput(k) ? `${k}=${fileInputs[k]?.name ?? '(none)'}` : `${k}=${textInputs[k]?.trim() || '(none)'}`).join(', ')}` : ''}`}
         confirmLabel="Submit"
         confirmVariant="primary"
         onConfirm={doSubmit}
