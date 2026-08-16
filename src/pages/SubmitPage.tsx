@@ -73,8 +73,24 @@ export function SubmitPage() {
 
   // Get the selected implementation object
   const selectedImplObj = allImplementations.find(i => i.name === selectedImpl);
+  // step_slots generalises prompt_slots (includes type: "action" | "llm")
+  const stepSlots = selectedImplObj?.step_slots ?? {};
   const promptSlots = selectedImplObj?.prompt_slots ?? {};
-  const promptSlotKeys = Object.keys(promptSlots);
+  // Sort slot keys by workflow step order so dropdowns appear in execution sequence
+  const sortByStepOrder = (keys: string[]) =>
+    [...keys].sort((a, b) => {
+      const ia = selectedWorkflowSteps.indexOf(a);
+      const ib = selectedWorkflowSteps.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return 0;
+    });
+  const stepSlotKeys = sortByStepOrder(Object.keys(stepSlots));
+  const promptSlotKeys = sortByStepOrder(Object.keys(promptSlots));
+  // Use step_slots if available, otherwise fall back to prompt_slots
+  const hasStepSlots = stepSlotKeys.length > 0;
+  const hasPromptSlots = !hasStepSlots && promptSlotKeys.length > 0;
 
   const doSubmit = () => {
     // Build input_payload from dynamic inputs
@@ -222,7 +238,38 @@ export function SubmitPage() {
               </div>
             )}
 
-            {promptSlotKeys.length > 0 && (
+            {hasStepSlots && (
+              <div className="mb-4 p-4 bg-bg-input border border-border rounded-lg">
+                <h4 className="text-sm font-semibold text-text-secondary mb-3">Step Configuration</h4>
+                {stepSlotKeys.map(slotId => {
+                  const slot = stepSlots[slotId];
+                  const defaultValue = slot.default ?? (slot.options[0]?.name ?? '');
+                  const currentValue = promptSelections[slotId] ?? defaultValue;
+                  const isAction = slot.type === 'action';
+                  return (
+                    <div key={slotId} className="mb-3 last:mb-0">
+                      <label className="block text-sm text-text-secondary mb-1.5 font-medium">
+                        {slot.label}
+                        {isAction && <span className="ml-2 text-xs text-text-muted font-normal">(provider)</span>}
+                      </label>
+                      <select
+                        className="w-full bg-bg-input border border-border rounded-md px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                        value={currentValue}
+                        onChange={e => setPromptSelections(prev => ({ ...prev, [slotId]: e.target.value }))}
+                      >
+                        {slot.options.map(opt => (
+                          <option key={opt.name} value={opt.name}>
+                            {opt.description || opt.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {hasPromptSlots && (
               <div className="mb-4 p-4 bg-bg-input border border-border rounded-lg">
                 <h4 className="text-sm font-semibold text-text-secondary mb-3">Prompt Variations</h4>
                 {promptSlotKeys.map(slotId => {

@@ -289,6 +289,7 @@ export function RunsPage() {
               </DetailField>
               <DetailField label="Current Step" value={currentSelectedRun.current_step || '—'} />
               <DetailField label="Workflow" value={currentSelectedRun.workflow_name} />
+              <DetailField label="Implementation" value={currentSelectedRun.implementation_name || '—'} />
               <DetailField label="Repo" value={pathToRepo.get(currentSelectedRun.project_root ?? '') || '—'} />
               <DetailField label="Worker" value={currentSelectedRun.worker_id || '—'} />
               <DetailField label="Project Root" value={currentSelectedRun.project_root || '—'} />

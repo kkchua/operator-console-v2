@@ -148,6 +148,7 @@ export function HistoryPage() {
               <DetailField label="Status"><StatusBadge status={selectedRun.run_status} /></DetailField>
               <DetailField label="Current Step" value={selectedRun.current_step || '—'} />
               <DetailField label="Workflow" value={selectedRun.workflow_name} />
+              <DetailField label="Implementation" value={selectedRun.implementation_name || '—'} />
               <DetailField label="Repo" value={pathToRepo.get(selectedRun.project_root ?? '') || '—'} />
               <DetailField label="Worker" value={selectedRun.worker_id || '—'} />
               <DetailField label="Project Root" value={selectedRun.project_root || '—'} />
