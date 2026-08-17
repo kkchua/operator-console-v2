@@ -18,7 +18,6 @@ const iconMap: Record<string, string> = {
   Key: '🔑',
   Users: '👥',
 };
-
 function flattenNav(items: NavigationItem[]): NavigationItem[] {
   return items.flatMap(item =>
     item.children?.length ? flattenNav(item.children) : [item],

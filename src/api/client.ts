@@ -15,6 +15,9 @@ import type {
   RepoWorkflowResponse,
   UserInfoResponse,
   NavigationItem,
+  UserRoleResponse,
+  UpdateUserRoleRequest,
+  SetUserWorkersRequest,
 } from './types';
 import { supabase } from '../lib/supabase';
 
@@ -148,3 +151,20 @@ export const getMe = () =>
 
 export const getNavigation = (appId = 'agent-runner') =>
   request<NavigationItem[]>('GET', `/auth/navigation?app_id=${appId}`);
+
+// User roles
+export const listUsers = () =>
+  request<UserRoleResponse[]>('GET', '/auth/users');
+
+export const updateUserRole = (userId: string, data: UpdateUserRoleRequest) =>
+  request<UserRoleResponse>('PUT', `/auth/users/${userId}/role`, data);
+
+export const removeUser = (userId: string) =>
+  request<void>('DELETE', `/auth/users/${userId}`);
+
+// User-Worker assignments
+export const getUserWorkers = (userId: string) =>
+  request<string[]>('GET', `/auth/users/${userId}/workers`);
+
+export const setUserWorkers = (userId: string, data: SetUserWorkersRequest) =>
+  request<{ user_id: string; worker_ids: string[] }>('PUT', `/auth/users/${userId}/workers`, data);

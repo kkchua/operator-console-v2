@@ -69,7 +69,7 @@ export function HistoryPage() {
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="overflow-x-auto">
-        <div className="bg-bg-secondary border border-border rounded-xl">
+        <div>
           <div className="px-5 py-3.5 border-b border-border flex justify-between items-center">
             <h3 className="text-sm font-semibold">All Runs</h3>
             <span className="text-xs text-text-muted">
@@ -83,9 +83,9 @@ export function HistoryPage() {
           ) : (
             <>
               {/* Mobile card layout */}
-              <div className="md:hidden divide-y divide-bg-primary">
+              <div className="md:hidden space-y-2">
                 {filtered.map(run => (
-                  <div key={run.run_id} className="p-4 space-y-2">
+                  <div key={run.run_id} className="p-4 space-y-2 bg-bg-secondary border border-border rounded-lg">
                     <div className="text-sm text-text-muted truncate">{pathToRepo.get(run.project_root ?? '') || '—'}</div>
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-sm text-blue-300 font-medium">{run.run_code}</span>
@@ -102,7 +102,7 @@ export function HistoryPage() {
               </div>
 
               {/* Desktop grid layout */}
-              <div className="hidden md:block">
+              <div className="hidden md:block space-y-1.5">
                 {filtered.map(run => (
                   <RunRow key={run.run_id} run={run} repoName={pathToRepo.get(run.project_root ?? '') || '—'} onClick={() => setSelectedRun(run)} />
                 ))}
@@ -148,6 +148,7 @@ export function HistoryPage() {
               <DetailField label="Status"><StatusBadge status={selectedRun.run_status} /></DetailField>
               <DetailField label="Current Step" value={selectedRun.current_step || '—'} />
               <DetailField label="Workflow" value={selectedRun.workflow_name} />
+              <DetailField label="Implementation" value={selectedRun.implementation_name || '—'} />
               <DetailField label="Repo" value={pathToRepo.get(selectedRun.project_root ?? '') || '—'} />
               <DetailField label="Worker" value={selectedRun.worker_id || '—'} />
               <DetailField label="Project Root" value={selectedRun.project_root || '—'} />
@@ -173,7 +174,7 @@ export function HistoryPage() {
 
 function RunRow({ run, repoName, onClick }: { run: RunResponse; repoName: string; onClick: () => void }) {
   return (
-    <div onClick={onClick} className="grid grid-cols-[220px_1fr_130px_140px_120px_100px] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3 hover:bg-white/5 cursor-pointer transition-colors">
+    <div onClick={onClick} className="grid grid-cols-[220px_1fr_130px_140px_120px_100px] items-center px-5 py-3 bg-bg-secondary border border-border rounded-lg gap-3 hover:bg-white/5 cursor-pointer transition-colors">
       <span className="text-sm text-text-muted truncate">{repoName}</span>
       <span className="text-sm text-text-secondary truncate">{run.workflow_name}</span>
       <StatusBadge status={run.run_status} />

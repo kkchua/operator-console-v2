@@ -15,7 +15,7 @@ export function WorkflowsPage() {
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="overflow-x-auto">
-        <div className="bg-bg-secondary border border-border rounded-xl">
+        <div>
           <div className="px-5 py-3.5 border-b border-border">
             <h3 className="text-sm font-semibold">Workflow Definitions</h3>
           </div>
@@ -26,9 +26,9 @@ export function WorkflowsPage() {
           ) : (
             <>
               {/* Mobile card layout */}
-              <div className="md:hidden divide-y divide-bg-primary">
+              <div className="md:hidden space-y-2">
                 {list.map(w => (
-                  <div key={w.workflow_name} className="p-4 space-y-2">
+                  <div key={w.workflow_name} className="p-4 space-y-2 bg-bg-secondary border border-border rounded-lg">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-text-primary">{w.workflow_name}</span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-400">
@@ -45,11 +45,11 @@ export function WorkflowsPage() {
               </div>
 
               {/* Desktop grid layout */}
-              <div className="hidden md:block">
+              <div className="hidden md:block space-y-1.5">
                 {list.map(w => (
                   <div
                     key={w.workflow_name}
-                    className="grid grid-cols-[1fr_auto_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-4"
+                    className="grid grid-cols-[1fr_auto_auto] items-center px-5 py-3 bg-bg-secondary border border-border rounded-lg gap-4"
                   >
                     <div>
                       <span className="text-sm font-medium text-text-primary">{w.workflow_name}</span>

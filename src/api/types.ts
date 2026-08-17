@@ -25,6 +25,9 @@ export interface RunResponse {
   created_at: string;
   updated_at: string;
   valid_actions: string[];
+  // Base Composition Standard (BCS) fields
+  implementation_name: string | null;
+  prompt_selections: Record<string, string>;
 }
 
 export interface RunListResponse {
@@ -51,6 +54,23 @@ export interface WorkflowResponse {
   is_active: boolean;
   step_count: number;
   steps: string[];
+  init_input_keys?: string[];
+  implementations?: Array<{
+    name: string;
+    description: string;
+    label: string;
+    prompt_slots?: Record<string, {
+      label: string;
+      default: string;
+      options: Array<{ name: string; file: string; description?: string }>;
+    }>;
+    step_slots?: Record<string, {
+      type: "action" | "llm";
+      label: string;
+      default: string;
+      options: Array<{ name: string; description?: string; file?: string }>;
+    }>;
+  }>;
 }
 
 export interface SubmitRunRequest {
@@ -59,6 +79,9 @@ export interface SubmitRunRequest {
   project_root?: string;
   start_step?: string;
   input_payload?: Record<string, string>;
+  // Base Composition Standard (BCS) fields
+  implementation_name?: string;
+  prompt_selections?: Record<string, string>;
 }
 
 export interface ActionRequest {
@@ -147,4 +170,22 @@ export interface NavigationItem {
   path: string;
   required_roles: string[];
   children?: NavigationItem[];
+}
+
+// User roles
+export interface UserRoleResponse {
+  user_id: string;
+  email: string;
+  role: string;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateUserRoleRequest {
+  role: string;
+}
+
+export interface SetUserWorkersRequest {
+  worker_ids: string[];
 }

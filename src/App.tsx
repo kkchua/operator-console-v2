@@ -11,6 +11,7 @@ import { ReposPage } from './pages/ReposPage'
 import { WorkersPage } from './pages/WorkersPage'
 import { HostsPage } from './pages/HostsPage'
 import { WorkflowsPage } from './pages/WorkflowsPage'
+import { UsersPage } from './pages/UsersPage'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
             <Route path="workers" element={<WorkersPage />} />
             <Route path="hosts" element={<HostsPage />} />
             <Route path="workflows" element={<WorkflowsPage />} />
+            <Route path="users" element={<UsersPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

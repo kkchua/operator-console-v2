@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment
+.env
+.env.local
+
+# Qwen CLI
+.qwen/
+
+# Generated artifacts
+docs/repo/*/runs/
+docs/repo/*/backups/
+docs/system/
