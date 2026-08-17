@@ -358,7 +358,7 @@ function RepoList({
           {worker?.hostname || workerId} · {repos.length} repo{repos.length !== 1 ? 's' : ''}
         </div>
       </div>
-      <div className="bg-bg-secondary border border-border rounded-xl">
+      <div>
         <div className="px-5 py-3.5 border-b border-border">
           <h3 className="text-sm font-semibold">Repos</h3>
         </div>
@@ -367,9 +367,9 @@ function RepoList({
         ) : (
           <>
             {/* Mobile card layout */}
-            <div className="md:hidden divide-y divide-bg-primary">
+            <div className="md:hidden space-y-2">
               {repos.map(repo => (
-                <div key={repo.id} className="p-4">
+                <div key={repo.id} className="p-4 bg-bg-secondary border border-border rounded-lg">
                   <div
                     className="cursor-pointer hover:text-accent transition-colors mb-2"
                     onClick={() => onSelect(repo)}
@@ -402,11 +402,11 @@ function RepoList({
             </div>
 
             {/* Desktop grid layout */}
-            <div className="hidden md:block">
+            <div className="hidden md:block space-y-1.5">
               {repos.map(repo => (
                 <div
                   key={repo.id}
-                  className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3 border-b border-bg-primary last:border-0 gap-3"
+                  className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-3 bg-bg-secondary border border-border rounded-lg gap-3"
                 >
                   <div
                     className="min-w-0 cursor-pointer hover:text-accent transition-colors"
@@ -460,7 +460,7 @@ function WorkflowGrid({
       <div className="mb-4 px-1">
         <div className="text-xs text-text-muted font-mono">{repo.path}</div>
       </div>
-      <div className="bg-bg-secondary border border-border rounded-xl">
+      <div>
         <div className="px-5 py-3.5 border-b border-border flex justify-between items-center">
           <h3 className="text-sm font-semibold">Assigned Workflows ({workflows.length})</h3>
         </div>
@@ -484,8 +484,9 @@ function WorkflowGrid({
             <span />
           </div>
         )}
+        <div className="space-y-1.5">
         {workflows.map(wf => (
-          <div key={wf.id} className="border-b border-bg-primary last:border-0">
+          <div key={wf.id} className="bg-bg-secondary border border-border rounded-lg">
             {/* Mobile card */}
             <div className="md:hidden p-4">
               <div className="flex items-center justify-between mb-1">
@@ -513,6 +514,7 @@ function WorkflowGrid({
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       {/* Assign workflow inline panel */}

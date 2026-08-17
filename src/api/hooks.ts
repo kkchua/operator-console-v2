@@ -238,3 +238,52 @@ export function useNavigation() {
     queryFn: () => api.getNavigation(),
   });
 }
+
+// User roles
+export function useUsers() {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: api.listUsers,
+  });
+}
+
+export function useUpdateUserRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, data }: { userId: string; data: { role: string } }) =>
+      api.updateUserRole(userId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+export function useRemoveUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => api.removeUser(userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
+// User-Worker assignments
+export function useUserWorkers(userId: string) {
+  return useQuery({
+    queryKey: ['user-workers', userId],
+    queryFn: () => api.getUserWorkers(userId),
+    enabled: !!userId,
+  });
+}
+
+export function useSetUserWorkers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, workerIds }: { userId: string; workerIds: string[] }) =>
+      api.setUserWorkers(userId, { worker_ids: workerIds }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-workers'] });
+    },
+  });
+}

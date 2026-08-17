@@ -58,7 +58,7 @@ export function HostsPage() {
         ) : list.length === 0 ? (
           <div className="text-text-muted text-center py-12">No hosts registered</div>
         ) : (
-          <div className="bg-bg-secondary border border-border rounded-xl">
+          <div>
             {/* Desktop header */}
             <div className="hidden md:grid grid-cols-[1.5fr_1fr_0.8fr_1.2fr_1.2fr_120px] gap-3 px-5 py-2.5 border-b border-border text-xs text-text-muted uppercase tracking-wider">
               <span>Hostname</span>
@@ -70,9 +70,9 @@ export function HostsPage() {
             </div>
 
             {/* Mobile card layout */}
-            <div className="md:hidden divide-y divide-bg-primary">
+            <div className="md:hidden space-y-2">
               {list.map(h => (
-                <div key={h.id} className="p-4 space-y-2">
+                <div key={h.id} className="p-4 space-y-2 bg-bg-secondary border border-border rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-text-primary">{h.hostname}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-text-muted uppercase">{h.os_type}</span>
@@ -101,11 +101,11 @@ export function HostsPage() {
             </div>
 
             {/* Desktop grid rows */}
-            <div className="hidden md:block">
+            <div className="hidden md:block space-y-1.5">
               {list.map(h => (
                 <div
                   key={h.id}
-                  className="grid grid-cols-[1.5fr_1fr_0.8fr_1.2fr_1.2fr_120px] gap-3 items-center px-5 py-3 border-b border-bg-primary last:border-0"
+                  className="grid grid-cols-[1.5fr_1fr_0.8fr_1.2fr_1.2fr_120px] gap-3 items-center px-5 py-3 bg-bg-secondary border border-border rounded-lg"
                 >
                   <span className="text-sm font-medium text-text-primary truncate">{h.hostname}</span>
                   <span className="text-xs text-text-muted font-mono">{h.ip_address || '—'}</span>

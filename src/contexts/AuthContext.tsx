@@ -16,6 +16,21 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Fetch the authoritative role from the backend DB (not JWT metadata). */
+async function resolveRole(session: Session | null): Promise<string> {
+  if (!session) return '';
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) return (session.user.user_metadata?.role as string) ?? '';
+    const data = await res.json();
+    return data.role ?? '';
+  } catch {
+    return (session.user.user_metadata?.role as string) ?? '';
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -25,22 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setState({
-        user: session?.user ?? null,
-        session,
-        role: (session?.user?.user_metadata?.role as string) ?? '',
-        loading: false,
-      });
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const role = await resolveRole(session);
+      setState({ user: session?.user ?? null, session, role, loading: false });
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setState({
-        user: session?.user ?? null,
-        session,
-        role: (session?.user?.user_metadata?.role as string) ?? '',
-        loading: false,
-      });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const role = await resolveRole(session);
+      setState({ user: session?.user ?? null, session, role, loading: false });
     });
 
     return () => subscription.unsubscribe();
@@ -49,13 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // Update state immediately with the returned session
-    setState({
-      user: data.session?.user ?? null,
-      session: data.session,
-      role: (data.session?.user?.user_metadata?.role as string) ?? '',
-      loading: false,
-    });
+    const role = await resolveRole(data.session);
+    setState({ user: data.session?.user ?? null, session: data.session, role, loading: false });
   }, []);
 
   const signOut = useCallback(async () => {
