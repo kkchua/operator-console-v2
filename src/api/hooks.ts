@@ -18,14 +18,6 @@ export function useAllRuns(refreshInterval = 10000, workerId?: string | null, li
   });
 }
 
-export function useRun(runId: string | null) {
-  return useQuery({
-    queryKey: ['run', runId],
-    queryFn: () => api.getRun(runId!),
-    enabled: !!runId,
-  });
-}
-
 export function useWorkers() {
   return useQuery({
     queryKey: ['workers'],

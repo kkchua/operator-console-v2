@@ -89,18 +89,6 @@ export interface ActionRequest {
   feedback?: string;
 }
 
-export interface OutcomeResponse {
-  run_id: string;
-  run_status: string;
-  current_step: string | null;
-  action_requested: string | null;
-  message: string;
-}
-
-export interface HeartbeatResponse {
-  commands: string[];
-}
-
 // Hosts
 export interface HostResponse {
   id: string;
@@ -142,12 +130,6 @@ export interface CreateRepoRequest {
   name: string;
   path: string;
   worker_id: string;
-}
-
-export interface UpdateRepoRequest {
-  name?: string;
-  path?: string;
-  worker_id?: string;
 }
 
 export interface AssignWorkflowRequest {

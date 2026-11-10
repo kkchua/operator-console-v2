@@ -5,15 +5,12 @@ import type {
   WorkflowResponse,
   SubmitRunRequest,
   ActionRequest,
-  OutcomeResponse,
-  HeartbeatResponse,
   HostResponse,
   CreateHostRequest,
   RepoResponse,
   CreateRepoRequest,
   AssignWorkflowRequest,
   RepoWorkflowResponse,
-  UserInfoResponse,
   NavigationItem,
   UserRoleResponse,
   UpdateUserRoleRequest,
@@ -81,21 +78,12 @@ export const requestAction = (runId: string, data: ActionRequest) =>
 export const resetStep = (runId: string, stepName: string) =>
   request<RunResponse>('POST', `/runs/${runId}/reset-step`, { step_name: stepName });
 
-export const reportOutcome = (stepRunId: string, outcome: string, failureClass?: string) =>
-  request<OutcomeResponse>('POST', `/runs/step-runs/${stepRunId}/outcome`, {
-    outcome,
-    failure_class: failureClass,
-  });
-
 // Workers
 export const listWorkers = () =>
   request<WorkerResponse[]>('GET', '/workers');
 
 export const registerWorker = (workerId: string, workerLabel = 'live') =>
   request<WorkerResponse>('POST', '/workers/register', { worker_id: workerId, worker_label: workerLabel });
-
-export const heartbeat = (workerId: string, status = 'idle') =>
-  request<HeartbeatResponse>('POST', `/workers/${workerId}/heartbeat`, { status });
 
 export const stopWorker = (workerId: string) =>
   request<{ status: string }>('POST', `/workers/${workerId}/stop`);
@@ -109,9 +97,6 @@ export const deleteWorker = (workerId: string) =>
 // Workflows
 export const listWorkflows = () =>
   request<WorkflowResponse[]>('GET', '/workflows');
-
-export const syncWorkflows = (workflowName: string, definition: Record<string, unknown>) =>
-  request<WorkflowResponse>('POST', '/workflows/sync', { workflow_name: workflowName, definition });
 
 // Hosts
 export const listHosts = () =>
@@ -146,9 +131,6 @@ export const unassignWorkflow = (repoId: string, workflowName: string) =>
   request<{ status: string }>('DELETE', `/repos/${repoId}/workflows/${workflowName}`);
 
 // Auth
-export const getMe = () =>
-  request<UserInfoResponse>('GET', '/auth/me');
-
 export const getNavigation = (appId = 'agent-runner') =>
   request<NavigationItem[]>('GET', `/auth/navigation?app_id=${appId}`);
 

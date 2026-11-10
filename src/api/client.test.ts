@@ -102,28 +102,6 @@ describe('resetStep', () => {
   });
 });
 
-describe('reportOutcome', () => {
-  it('posts outcome without failure class', async () => {
-    mockFetch.mockReturnValue(mockOk({ run_id: 'r1' }));
-    await api.reportOutcome('sr1', 'success');
-    expect(mockFetch).toHaveBeenCalledWith('/api/runs/step-runs/sr1/outcome', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ outcome: 'success', failure_class: undefined }),
-    });
-  });
-
-  it('posts outcome with failure class', async () => {
-    mockFetch.mockReturnValue(mockOk({}));
-    await api.reportOutcome('sr1', 'failure', 'TRANSIENT');
-    expect(mockFetch).toHaveBeenCalledWith('/api/runs/step-runs/sr1/outcome', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ outcome: 'failure', failure_class: 'TRANSIENT' }),
-    });
-  });
-});
-
 // ── Workers ───────────────────────────────────────────
 
 describe('listWorkers', () => {
@@ -154,28 +132,6 @@ describe('registerWorker', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ worker_id: 'w1', worker_label: 'live' }),
-    });
-  });
-});
-
-describe('heartbeat', () => {
-  it('posts heartbeat with status', async () => {
-    mockFetch.mockReturnValue(mockOk({ commands: [] }));
-    await api.heartbeat('w1', 'busy');
-    expect(mockFetch).toHaveBeenCalledWith('/api/workers/w1/heartbeat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'busy' }),
-    });
-  });
-
-  it('defaults status to idle', async () => {
-    mockFetch.mockReturnValue(mockOk({}));
-    await api.heartbeat('w1');
-    expect(mockFetch).toHaveBeenCalledWith('/api/workers/w1/heartbeat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'idle' }),
     });
   });
 });
@@ -237,19 +193,6 @@ describe('listWorkflows', () => {
     const result = await api.listWorkflows();
     expect(mockFetch).toHaveBeenCalledWith('/api/workflows', { method: 'GET', headers: {}, body: undefined });
     expect(result).toEqual(data);
-  });
-});
-
-describe('syncWorkflows', () => {
-  it('posts workflow sync', async () => {
-    const def = { steps: ['a', 'b'] };
-    mockFetch.mockReturnValue(mockOk({ workflow_name: 'wf1' }));
-    await api.syncWorkflows('wf1', def);
-    expect(mockFetch).toHaveBeenCalledWith('/api/workflows/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workflow_name: 'wf1', definition: def }),
-    });
   });
 });
 
